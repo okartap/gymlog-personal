@@ -204,6 +204,14 @@ body { text-align:center; }
 .act-l2 { font-size:11px; color:var(--txt3); margin-top:1px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
 .act-btns { display:flex; flex-shrink:0; }
 .act-btns .del-btn { padding:4px 6px; font-size:15px; }
+.hoy-c { padding:12px 14px; margin-bottom:8px; }
+.hoy-fila { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+.hoy-tiny { font-size:11px; color:var(--txt2); }
+.hoy-mini { margin-top:10px; }
+.hoy-mini .rc.hab { max-width:34px; padding:3px; }
+.hoy-mini .rc.hab .ri { font-size:13px; }
+.hoy-mini .habit-day { font-size:9px; margin-bottom:2px; }
+.hoy-link { background:none; border:none; color:var(--pas); font-size:11px; cursor:pointer; padding:2px 0; font-family:inherit; }
 .fecha-sel.dur-sel { grid-template-columns:1fr 1fr 1fr; }
 .card.lista { padding:6px 14px; }
 
@@ -245,36 +253,32 @@ body { text-align:center; }
     </div>
     <div id="hoy-error"></div>
 
-    <div class="sec-label">🔥 Racha</div>
-    <div class="card">
-      <div class="habit-top">
-        <div class="habit-num" id="hoy-racha">0</div>
-        <div>
-          <div style="font-weight:600;">días seguidos</div>
-          <div style="font-size:12px; color:var(--txt3); margin-top:2px;" id="hoy-racha-sub"></div>
+    <div class="card hoy-c">
+      <div class="hoy-fila">
+        <div class="hoy-fila" style="justify-content:flex-start; gap:8px;">
+          <span style="font-size:20px;">🔥</span>
+          <span class="habit-num" id="hoy-racha" style="font-size:30px; line-height:1;">0</span>
+          <div style="text-align:left;">
+            <div style="font-weight:600; font-size:13px; line-height:1.2;">días seguidos</div>
+            <div class="hoy-tiny" id="hoy-mejor"></div>
+          </div>
         </div>
+        <div class="hoy-tiny" id="hoy-racha-sub"></div>
       </div>
-      <div class="habit-strip" id="hoy-semana"></div>
+      <div class="habit-strip hoy-mini" id="hoy-semana"></div>
     </div>
 
-    <div class="sec-label">Pasos</div>
-    <div class="card">
-      <div class="input-wrap">
-        <label>Día</label>
-        <div class="fecha-sel" id="fs-pasos"></div>
+    <div class="card hoy-c">
+      <div class="hoy-fila">
+        <div style="font-weight:600; font-size:13px; white-space:nowrap;">👟 Pasos hoy</div>
+        <input type="number" inputmode="numeric" class="inp" id="hoy-pasos" placeholder="0" style="padding:8px 10px; font-size:15px; max-width:110px;">
+        <button class="btn btn-primary" style="width:auto; padding:9px 14px; font-size:13px;" onclick="guardarPasos()">Guardar</button>
       </div>
-      <div style="display:flex; gap:10px; align-items:flex-end;">
-        <div style="flex:1;">
-          <label style="font-size:12px; color:var(--txt2); display:block; margin-bottom:6px;">Pasos (Huawei Salud)</label>
-          <input type="number" inputmode="numeric" class="inp" id="hoy-pasos" placeholder="0">
-        </div>
-        <button class="btn btn-primary" style="width:auto; padding:12px 20px;" onclick="guardarPasos()">Guardar</button>
+      <div class="prog-bar" style="margin:10px 0 6px;"><div class="prog-fill" id="hoy-pasos-bar" style="width:0%; background:var(--pas);"></div></div>
+      <div class="hoy-fila">
+        <span class="hoy-tiny" id="hoy-pasos-lbl">—</span>
+        <button class="hoy-link" onclick="abrirPasosLote()">📅 Otro día…</button>
       </div>
-      <div class="prog-bar"><div class="prog-fill green" id="hoy-pasos-bar" style="width:0%"></div></div>
-      <div style="display:flex; justify-content:center; gap:16px; margin-top:6px; font-size:11px; color:var(--txt3);">
-        <span id="hoy-pasos-lbl">—</span><span>objetivo: 10.000</span>
-      </div>
-      <button class="btn btn-ghost" style="margin-top:12px;" onclick="abrirPasosLote()">📅 Cargar varios días atrás</button>
     </div>
 
     <div style="padding:0 16px; margin-bottom:12px;">
@@ -767,7 +771,6 @@ function goTo(pantalla, btn) {
   $('screen-' + pantalla).classList.add('active');
   (btn || document.querySelector(`.nav-btn[onclick*="'${pantalla}'"]`))?.classList.add('active');
   S.pantalla = pantalla;
-  if (pantalla === 'hoy') montarFechaSel('fs-pasos', hoyStr(), pintarPasos); // siempre empieza en el día de hoy
   renderPantalla(pantalla);
   window.scrollTo(0, 0);
 }
@@ -860,7 +863,9 @@ function renderHoy() {
 
   const R = calcRacha();
   $('hoy-racha').textContent = R.actual;
-  $('hoy-racha-sub').textContent = (R.ok.has(hoy) ? 'Hoy cumplido ✓' : 'Hoy aún no cumplido') + ' · mejor racha: ' + R.mejor;
+  $('hoy-mejor').textContent = 'mejor: ' + R.mejor;
+  $('hoy-racha-sub').textContent = R.ok.has(hoy) ? 'Hoy cumplido ✓' : 'Hoy aún no cumplido';
+  $('hoy-racha-sub').style.color = R.ok.has(hoy) ? 'var(--green)' : 'var(--txt3)';
   const lun = lunesDe(hoy);
   $('hoy-semana').innerHTML = ['L','M','X','J','V','S','D'].map((l, i) => {
     const f = addDias(lun, i);
@@ -891,12 +896,10 @@ function renderHoy() {
 
 // Pasos del día elegido en el selector (hoy por defecto)
 function pintarPasos() {
-  if (!$('fs-pasos').children.length) montarFechaSel('fs-pasos', hoyStr(), pintarPasos);
-  const f = leerFechaSel('fs-pasos');
-  const v = S.data.pasos[f] || 0;
+  const v = S.data.pasos[hoyStr()] || 0;
   $('hoy-pasos').value = v || '';
   $('hoy-pasos-bar').style.width = Math.min(100, v / 100) + '%';
-  $('hoy-pasos-lbl').textContent = v ? v.toLocaleString('es-ES') + ' pasos' : 'Sin registrar';
+  $('hoy-pasos-lbl').textContent = (v ? v.toLocaleString('es-ES') : '0') + ' / 10.000';
 }
 
 // ── Pasos de varios días: se teclean uno a uno y se guardan todos de golpe ──
@@ -954,12 +957,11 @@ async function guardarPasosLote() {
 
 async function guardarPasos() {
   const v = parseInt($('hoy-pasos').value);
-  const f = leerFechaSel('fs-pasos');
+  const f = hoyStr();
   if (isNaN(v) || v < 0 || v > 100000) { showToast('Introduce un número de pasos válido', '⚠️'); return; }
-  if (f > hoyStr()) { showToast('No puedes registrar pasos de un día futuro', '⚠️'); return; }
   try {
     await window._fb.save('pasos_dia', f, { fecha: f, pasos: v });
-    showToast(f === hoyStr() ? 'Pasos guardados' : `Pasos del ${fmtFecha(f)} guardados`, '👟');
+    showToast('Pasos guardados', '👟');
     await refrescar();
   } catch (e) { errorFb(e, 'guardar'); }
 }
