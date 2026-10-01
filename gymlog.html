@@ -555,6 +555,15 @@ function showToast(msg, icon = '✓') {
 const openModal = id => $(id).classList.remove('hidden');
 const closeModal = id => $(id).classList.add('hidden');
 
+function errorFb(e, accion = 'guardar') {
+  console.error(e);
+  const cod = e?.code || '', msg = e?.message || '';
+  let causa = 'Ha ocurrido un error inesperado.';
+  if (cod === 'permission-denied' || /permission|insufficient/i.test(msg)) causa = 'Firebase ha rechazado la operación: las reglas de la base de datos no te dejan escribir.';
+  else if (cod === 'unavailable' || /network|offline|fetch/i.test(msg)) causa = 'No hay conexión con Firebase. Comprueba tu internet.';
+  alert(`No se pudo ${accion}.\n\n${causa}\n\nDetalle técnico: ${cod || msg || 'sin detalle'}`);
+}
+
 // Selector de fecha con tres desplegables (día / mes / año): en el iPhone se abren como ruedas
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 function montarFechaSel(id, iso, alCambiar) {
@@ -584,7 +593,8 @@ function leerFechaSel(id) {
 const S = { tipo: 'caminar', data: null, charts: {}, objKm: 75, objPeso: null, calY: new Date().getFullYear(), calM: new Date().getMonth(), pantalla: 'hoy' };
 
 async function cargarTodo() {
-  const g = (col, ord) => window._fb.getAll(col, ord).catch(e => { console.warn('No se pudo leer', col, e); return []; });
+  S.errLectura = null;
+  const g = (col, ord) => window._fb.getAll(col, ord).catch(e => { console.warn('No se pudo leer', col, e); S.errLectura = S.errLectura || (e?.code || e?.message || 'error'); return []; });
   const [actNuevas, cardiosViejos, pesos, comp, pasosDia, checkins, cfg] = await Promise.all([
     g('actividades', '_ts'), g('cardios', '_ts'), g('pesos', '_ts'), g('composicion', '_ts'),
     g('pasos_dia', '_ts'), g('checkins', '_ts'), g('config', null)
@@ -748,7 +758,9 @@ function claseDia(tipos, f) {
 function renderHoy() {
   const hoy = hoyStr();
   $('hoy-fecha').textContent = fmtFechaLarga(hoy);
-  $('hoy-error').innerHTML = '';
+  $('hoy-error').innerHTML = S.errLectura
+    ? `<div class="err-box">No puedo leer tus datos de Firebase (${esc(S.errLectura)}). ${/permission/i.test(S.errLectura) ? 'Las reglas de la base de datos no permiten el acceso.' : 'Comprueba tu conexión.'}</div>`
+    : '';
 
   const R = calcRacha();
   $('hoy-racha').textContent = R.actual;
@@ -804,7 +816,7 @@ async function guardarPasos() {
     await window._fb.save('pasos_dia', f, { fecha: f, pasos: v });
     showToast(f === hoyStr() ? 'Pasos guardados' : `Pasos del ${fmtFecha(f)} guardados`, '👟');
     await refrescar();
-  } catch (e) { console.error(e); showToast('No se pudo guardar', '❌'); }
+  } catch (e) { errorFb(e, 'guardar'); }
 }
 
 // ════════════════════════════════════════
@@ -855,7 +867,7 @@ async function guardarActividad() {
     showToast('Actividad guardada', S.tipo === 'bici' ? '🚴' : '🚶');
     await refrescar();
     goTo('hoy');
-  } catch (e) { console.error(e); showToast('No se pudo guardar', '❌'); }
+  } catch (e) { errorFb(e, 'guardar'); }
   $('act-guardar').disabled = false;
 }
 
@@ -911,7 +923,7 @@ async function guardarEdicion() {
     showToast('Cambios guardados', '✏️');
     await refrescar();
     if (!$('modal-historial').classList.contains('hidden')) abrirHistorial();
-  } catch (e) { console.error(e); showToast('No se pudo guardar', '❌'); }
+  } catch (e) { errorFb(e, 'guardar'); }
   $('ed-guardar').disabled = false;
 }
 
@@ -922,7 +934,7 @@ async function borrarActividad(col, id) {
     showToast('Actividad borrada', '🗑️');
     await refrescar();
     if (!$('modal-historial').classList.contains('hidden')) abrirHistorial();
-  } catch (e) { console.error(e); showToast('No se pudo borrar', '❌'); }
+  } catch (e) { errorFb(e, 'borrar'); }
 }
 
 function abrirHistorial() {
@@ -1001,18 +1013,18 @@ async function guardarPeso() {
     $('nuevo-peso').value = '';
     showToast(`${kg} kg guardado`, '⚖️');
     await refrescar();
-  } catch (e) { console.error(e); showToast('No se pudo guardar', '❌'); }
+  } catch (e) { errorFb(e, 'guardar'); }
 }
 async function borrarPeso(id) {
   if (!confirm('¿Borrar este registro de peso?')) return;
   try { await window._fb.del('pesos', id); showToast('Registro eliminado', '🗑️'); await refrescar(); }
-  catch (e) { console.error(e); showToast('No se pudo borrar', '❌'); }
+  catch (e) { errorFb(e, 'borrar'); }
 }
 async function guardarObjetivoPeso() {
   const kg = num($('peso-objetivo').value);
   if (!kg) return;
   try { await window._fb.save('config', 'peso_objetivo', { valor: kg }); showToast(`Objetivo: ${kg} kg`, '🎯'); await refrescar(); }
-  catch (e) { console.error(e); showToast('No se pudo guardar', '❌'); }
+  catch (e) { errorFb(e, 'guardar'); }
 }
 
 async function guardarComposicion() {
@@ -1027,7 +1039,7 @@ async function guardarComposicion() {
     $('comp-grasa').value = ''; $('comp-musculo').value = '';
     showToast('Composición guardada', '📊');
     await refrescar();
-  } catch (e) { console.error(e); showToast('No se pudo guardar', '❌'); }
+  } catch (e) { errorFb(e, 'guardar'); }
 }
 
 function renderComposicion() {
@@ -1209,7 +1221,7 @@ async function guardarObjetivoKm() {
   const v = num($('obj-km').value);
   if (!v || v <= 0) return;
   try { await window._fb.save('config', 'objetivo_km_semana', { valor: v }); showToast(`Objetivo: ${v} km/semana`, '🎯'); await refrescar(); }
-  catch (e) { console.error(e); showToast('No se pudo guardar', '❌'); }
+  catch (e) { errorFb(e, 'guardar'); }
 }
 
 // Calendario
