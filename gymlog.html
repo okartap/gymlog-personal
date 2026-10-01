@@ -461,6 +461,15 @@ body { text-align:center; }
       <div style="font-size:12px; color:var(--txt3); margin-bottom:12px; line-height:1.5;">Descarga todos tus datos en un Excel: actividades, peso, composición y pasos.</div>
       <button class="btn btn-ghost" onclick="descargarCopia()">⬇️ Descargar Excel</button>
     </div>
+
+    <div class="sec-label">📥 Importar desde Excel</div>
+    <div class="card">
+      <div style="font-size:12px; color:var(--txt2); margin-bottom:12px; line-height:1.5;">Carga de golpe entrenos, peso, composición o pasos desde un Excel con el mismo formato que la copia de seguridad. Primero te muestra qué va a cargar y no duplica lo que ya existe.</div>
+      <input type="file" id="imp-file" accept=".xlsx,.xls" style="display:none" onchange="leerImport(this)">
+      <button class="btn btn-ghost" onclick="$('imp-file').click()">⬆️ Elegir archivo Excel</button>
+      <div id="imp-resumen" style="margin-top:12px; font-size:13px; line-height:1.6; color:var(--txt2);"></div>
+      <button class="btn btn-primary" id="imp-confirmar" style="display:none; margin-top:10px;" onclick="confirmarImport()">Confirmar e importar</button>
+    </div>
   </div>
 
 </div>
@@ -1242,6 +1251,106 @@ function descargarCopia() {
     }
     showToast('Copia descargada', '💾');
   } catch (e) { console.error(e); showToast('No se pudo crear la copia', '❌'); }
+}
+
+// ── Importar desde Excel (mismo formato que la copia de seguridad) ──
+function fechaImport(v) {
+  if (v == null || v === '') return null;
+  if (typeof v === 'number') { const d = new Date(Math.round((v - 25569) * 86400000)); return `${d.getUTCFullYear()}-${pad(d.getUTCMonth() + 1)}-${pad(d.getUTCDate())}`; }
+  const t = String(v).trim();
+  let m = t.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/); if (m) return `${m[1]}-${pad(m[2])}-${pad(m[3])}`;
+  m = t.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/); if (m) return `${m[3]}-${pad(m[2])}-${pad(m[1])}`;
+  return null;
+}
+function prepararImport(wb) {
+  const hoja = n => wb.Sheets[n] ? XLSX.utils.sheet_to_json(wb.Sheets[n], { defval: null }) : [];
+  const claveAct = (f, tipo, dur) => `${f}|${tipo}|${Math.round((dur || 0) * 60)}`;
+  const existentes = new Set(S.data.acts.map(a => claveAct(a.fecha, a.tipo, a.duracion)));
+  const P = { acts: [], pesos: [], comp: [], pasos: [], saltados: 0, errores: [] };
+  hoja('Actividades').forEach((r, i) => {
+    const fecha = fechaImport(r['Fecha']), dur = num(r['Duración (min)']);
+    const t = String(r['Tipo'] || '').toLowerCase();
+    const tipo = t.includes('bici') ? 'bici' : t.includes('correr') ? 'correr' : 'caminar';
+    if (!fecha || !dur || dur <= 0) { P.errores.push(`Actividades, fila ${i + 2}: falta fecha o duración`); return; }
+    const k = claveAct(fecha, tipo, dur);
+    if (existentes.has(k)) { P.saltados++; return; }
+    existentes.add(k);
+    const d = { fecha, tipo, duracion: dur, distancia: num(r['Distancia (km)']), calorias: num(r['Calorías']), fc_media: num(r['FC media (ppm)']),
+      vatios: num(r['Vatios medios']), zwift: r['Entreno Zwift'] ? String(r['Entreno Zwift']) : null,
+      dolor_rodilla: num(r['Dolor rodilla izq. (0-10)']), dolor_pie: num(r['Dolor pie dcho. (0-10)']), notas: r['Notas'] ? String(r['Notas']) : null };
+    Object.keys(d).forEach(x => d[x] === null && delete d[x]);
+    P.acts.push(d);
+  });
+  const pesosEx = new Set(S.data.pesos.map(p => p.fecha));
+  hoja('Peso').forEach((r, i) => {
+    const fecha = fechaImport(r['Fecha']), kg = num(r['Peso (kg)']);
+    if (!fecha || !kg || kg < 30 || kg > 300) { P.errores.push(`Peso, fila ${i + 2}: dato no válido`); return; }
+    if (pesosEx.has(fecha)) { P.saltados++; return; }
+    pesosEx.add(fecha); P.pesos.push({ fecha, kg, fuente: 'huawei' });
+  });
+  const compEx = new Set(S.data.comp.map(c => c.fecha));
+  hoja('Composición').forEach((r, i) => {
+    const fecha = fechaImport(r['Fecha']), g = num(r['% Grasa']), m = num(r['% Músculo']);
+    if (!fecha || (g === null && m === null)) { P.errores.push(`Composición, fila ${i + 2}: dato no válido`); return; }
+    if (compEx.has(fecha)) { P.saltados++; return; }
+    compEx.add(fecha);
+    const d = { fecha }; if (g !== null) d.grasa_pct = g; if (m !== null) d.musculo_pct = m; P.comp.push(d);
+  });
+  hoja('Pasos').forEach((r, i) => {
+    const fecha = fechaImport(r['Fecha']), pasos = num(r['Pasos']);
+    if (!fecha || pasos === null || pasos < 0 || pasos > 100000) { P.errores.push(`Pasos, fila ${i + 2}: dato no válido`); return; }
+    if (S.data.pasos[fecha]) { P.saltados++; return; }
+    P.pasos.push({ fecha, pasos });
+  });
+  return P;
+}
+function resumenImport(P) {
+  const L = [];
+  if (P.acts.length) { const f = P.acts.map(a => a.fecha).sort(); L.push(`🚶 <strong>${P.acts.length}</strong> entrenos (del ${fmtFecha(f[0])} al ${fmtFecha(f[f.length - 1])})`); }
+  if (P.pesos.length) L.push(`⚖️ <strong>${P.pesos.length}</strong> pesos`);
+  if (P.comp.length) L.push(`📊 <strong>${P.comp.length}</strong> composiciones`);
+  if (P.pasos.length) L.push(`👟 <strong>${P.pasos.length}</strong> días de pasos`);
+  if (P.saltados) L.push(`⏭️ ${P.saltados} ya existían y se saltan`);
+  if (P.acts.length) {
+    const f = P.acts.map(x => x.fecha).sort(), ini = f[0], fin = f[f.length - 1];
+    const previos = S.data.acts.filter(x => x.fecha >= ini && x.fecha <= fin).length;
+    if (previos > P.saltados) L.push(`⚠️ Ya tienes ${previos} entrenos guardados en esas fechas. Si los metiste a mano, se duplicarán: bórralos antes de importar.`);
+  }
+  if (P.errores.length) L.push(`⚠️ ${P.errores.length} filas no válidas: ${esc(P.errores.slice(0, 3).join(' · '))}${P.errores.length > 3 ? '…' : ''}`);
+  return L.length ? L.join('<br>') : 'No he encontrado nada que importar en ese archivo.';
+}
+async function leerImport(input) {
+  const f = input.files && input.files[0];
+  S.importPend = null; $('imp-confirmar').style.display = 'none';
+  if (!f) return;
+  try {
+    if (!window.XLSX) throw new Error('No se ha cargado la librería de Excel. Comprueba tu conexión.');
+    const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' });
+    const P = prepararImport(wb);
+    $('imp-resumen').innerHTML = resumenImport(P);
+    if (P.acts.length + P.pesos.length + P.comp.length + P.pasos.length) { S.importPend = P; $('imp-confirmar').style.display = 'block'; }
+  } catch (e) { console.error(e); $('imp-resumen').textContent = 'No he podido leer el archivo: ' + e.message; }
+  input.value = '';
+}
+async function confirmarImport() {
+  const P = S.importPend;
+  if (!P) return;
+  $('imp-confirmar').disabled = true;
+  try {
+    const tareas = [
+      ...P.acts.map(d => () => window._fb.add('actividades', d)),
+      ...P.pesos.map(d => () => window._fb.add('pesos', d)),
+      ...P.comp.map(d => () => window._fb.save('composicion', d.fecha, d)),
+      ...P.pasos.map(d => () => window._fb.save('pasos_dia', d.fecha, d))
+    ];
+    for (let i = 0; i < tareas.length; i += 10) await Promise.all(tareas.slice(i, i + 10).map(t => t()));
+    S.importPend = null;
+    $('imp-confirmar').style.display = 'none';
+    $('imp-resumen').innerHTML = `✅ Importado: ${tareas.length} registros.`;
+    showToast(`${tareas.length} registros importados`, '📥');
+    await refrescar();
+  } catch (e) { errorFb(e, 'importar'); }
+  $('imp-confirmar').disabled = false;
 }
 
 async function guardarObjetivoKm() {
