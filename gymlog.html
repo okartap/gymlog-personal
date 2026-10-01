@@ -249,6 +249,7 @@ body { text-align:center; }
       <div style="display:flex; justify-content:center; gap:16px; margin-top:6px; font-size:11px; color:var(--txt3);">
         <span id="hoy-pasos-lbl">—</span><span>objetivo: 10.000</span>
       </div>
+      <button class="btn btn-ghost" style="margin-top:12px;" onclick="abrirPasosLote()">📅 Cargar varios días atrás</button>
     </div>
 
     <div style="padding:0 16px; margin-bottom:12px;">
@@ -500,6 +501,28 @@ body { text-align:center; }
 </div>
 
 <!-- Modal editar actividad -->
+<div id="modal-pasos" class="modal-overlay hidden">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title">Pasos de varios días</div>
+    <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px;">
+      <button class="btn btn-ghost" style="width:56px; padding:12px 0; font-size:20px;" onclick="pasosLoteIr(-1)">‹</button>
+      <div style="text-align:center; flex:1;">
+        <div id="pl-fecha" style="font-weight:600; font-size:16px;"></div>
+        <div id="pl-estado" style="font-size:12px; color:var(--txt2); margin-top:2px;"></div>
+      </div>
+      <button class="btn btn-ghost" style="width:56px; padding:12px 0; font-size:20px;" id="pl-sig" onclick="pasosLoteIr(1)">›</button>
+    </div>
+    <div class="input-wrap"><label>Pasos de ese día (Huawei Salud)</label><input type="number" enterkeyhint="next" class="inp" id="pl-input" placeholder="0" style="font-size:22px;"></div>
+    <div style="font-size:12px; color:var(--txt2); margin:-4px 0 12px; text-align:center;">Intro o ‹ te lleva al día anterior. Nada se guarda hasta que pulses "Guardar todo".</div>
+    <div id="pl-pend" style="font-size:12px; color:var(--txt2); line-height:1.7; text-align:center; margin-bottom:12px;"></div>
+    <div style="display:flex; gap:10px;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-pasos')">Cancelar</button>
+      <button class="btn btn-primary" id="pl-guardar" onclick="guardarPasosLote()">Guardar todo</button>
+    </div>
+  </div>
+</div>
+
 <div id="modal-editar" class="modal-overlay hidden">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
@@ -839,6 +862,59 @@ function pintarPasos() {
   $('hoy-pasos').value = v || '';
   $('hoy-pasos-bar').style.width = Math.min(100, v / 100) + '%';
   $('hoy-pasos-lbl').textContent = v ? v.toLocaleString('es-ES') + ' pasos' : 'Sin registrar';
+}
+
+// ── Pasos de varios días: se teclean uno a uno y se guardan todos de golpe ──
+function pasosLoteGuardarActual() {
+  const f = S.pl.dia, v = $('pl-input').value.trim();
+  const guardado = S.data.pasos[f];
+  if (v === '') { delete S.pl.borr[f]; return true; }
+  const n = parseInt(v);
+  if (isNaN(n) || n < 0 || n > 100000) { showToast('Pasos no válidos (0 a 100.000)', '⚠️'); return false; }
+  if (n === guardado) delete S.pl.borr[f]; else S.pl.borr[f] = n;
+  return true;
+}
+function pasosLotePintar() {
+  const f = S.pl.dia, hoy = hoyStr();
+  $('pl-fecha').textContent = fmtFechaLarga(f) + (f === hoy ? ' (hoy)' : '');
+  const g = S.data.pasos[f];
+  $('pl-input').value = f in S.pl.borr ? S.pl.borr[f] : (g != null ? g : '');
+  $('pl-estado').textContent = f in S.pl.borr ? 'Pendiente de guardar' : (g != null ? 'Ya guardado: ' + g.toLocaleString('es-ES') : 'Sin registrar');
+  $('pl-sig').disabled = f >= hoy; $('pl-sig').style.opacity = f >= hoy ? '.35' : '1';
+  const pend = Object.keys(S.pl.borr).sort().reverse();
+  $('pl-pend').innerHTML = pend.length
+    ? `<strong>${pend.length}</strong> día${pend.length > 1 ? 's' : ''} pendiente${pend.length > 1 ? 's' : ''}: ` + pend.map(d => `${parseISO(d).getDate()}/${parseISO(d).getMonth() + 1}: ${S.pl.borr[d].toLocaleString('es-ES')}`).join(' · ')
+    : 'Aún no has anotado ningún día.';
+  $('pl-guardar').textContent = pend.length ? `Guardar todo (${pend.length})` : 'Guardar todo';
+}
+function abrirPasosLote() {
+  S.pl = { dia: addDias(hoyStr(), -1), borr: {} };
+  pasosLotePintar();
+  openModal('modal-pasos');
+  setTimeout(() => $('pl-input').focus(), 50);
+}
+function pasosLoteIr(delta) {
+  if (!pasosLoteGuardarActual()) return;
+  const nuevo = addDias(S.pl.dia, delta);
+  if (nuevo > hoyStr()) return;
+  S.pl.dia = nuevo;
+  pasosLotePintar();
+  $('pl-input').focus(); $('pl-input').select();
+}
+async function guardarPasosLote() {
+  if (!pasosLoteGuardarActual()) return;
+  const fechas = Object.keys(S.pl.borr).filter(f => f <= hoyStr());
+  if (!fechas.length) { showToast('No hay nada nuevo que guardar', 'ℹ️'); return; }
+  $('pl-guardar').disabled = true;
+  try {
+    for (let i = 0; i < fechas.length; i += 10)
+      await Promise.all(fechas.slice(i, i + 10).map(f => window._fb.save('pasos_dia', f, { fecha: f, pasos: S.pl.borr[f] })));
+    closeModal('modal-pasos');
+    showToast(`${fechas.length} día${fechas.length > 1 ? 's' : ''} de pasos guardado${fechas.length > 1 ? 's' : ''}`, '👟');
+    S.pl = null;
+    await refrescar();
+  } catch (e) { errorFb(e, 'guardar'); }
+  $('pl-guardar').disabled = false;
 }
 
 async function guardarPasos() {
@@ -1442,13 +1518,14 @@ async function iniciar() {
   montarFechaSel('fs-act', hoyStr());
   montarFechaSel('fs-peso', hoyStr());
   $('hoy-fecha').textContent = fmtFechaLarga(hoyStr());
+  $('pl-input').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); pasosLoteIr(-1); } };
   const ordenPeso = ['nuevo-peso', 'comp-grasa', 'comp-musculo'];
-  ordenPeso.forEach((id, k) => $(id).addEventListener('keydown', e => {
+  ordenPeso.forEach((id, k) => $(id).onkeydown = e => {
     if (e.key !== 'Enter') return;
     e.preventDefault();
     if (k < ordenPeso.length - 1) $(ordenPeso[k + 1]).focus();
     else { $(id).blur(); guardarPeso(); }
-  }));
+  });
   document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.add('hidden'); }));
   renderActividad();
   try {
