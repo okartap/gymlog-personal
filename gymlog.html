@@ -205,6 +205,29 @@ body { text-align:center; }
 .act-btns .del-btn { padding:4px 6px; font-size:15px; }
 .fecha-sel.dur-sel { grid-template-columns:1fr 1fr 1fr; }
 .card.lista { padding:6px 14px; }
+
+.seg { display:flex; gap:6px; justify-content:center; margin-bottom:12px; }
+.seg button { background:var(--bg3); color:var(--txt2); border:1px solid var(--border); border-radius:20px; padding:6px 14px; font-size:12px; font-family:'DM Sans',sans-serif; cursor:pointer; }
+.seg button.on { background:rgba(124,106,247,.18); border-color:var(--accent); color:var(--txt); }
+.cal-cell.p10 { background:var(--cyan); border-color:var(--cyan); color:#fff; font-weight:700; text-shadow:0 1px 2px rgba(0,0,0,.45); }
+.cal-cell.pmenos { border-color:rgba(58,184,212,.55); color:var(--txt); }
+.pas { background:var(--cyan); border-color:var(--cyan); }
+.pas-menos { background:transparent; border:2px solid rgba(58,184,212,.55); }
+.pas-no { background:var(--bg3); border:1px solid var(--border2); }
+#cal-dias, #cal-grid { max-width:420px; margin-left:auto; margin-right:auto; }
+
+/* círculo de día: relleno verde = entreno; anillo azul = pasos (completo = 10.000) */
+.rc { width:100%; aspect-ratio:1; border-radius:50%; padding:4px; display:flex;
+  background:conic-gradient(var(--cyan) var(--p, 0deg), var(--trk, transparent) 0); }
+.rc.hab { max-width:40px; margin:4px auto 0; padding:3px; }
+.ri { flex:1; border-radius:50%; background:var(--bg2); display:flex; align-items:center; justify-content:center; font-size:12px; color:var(--txt3); }
+.rc.hab .ri { font-size:15px; font-weight:700; color:transparent; }
+.ri.ok { background:var(--green); color:#fff; font-weight:700; text-shadow:0 1px 2px rgba(0,0,0,.45); }
+.rc.hab .ri.ok { color:#fff; }
+.rc.hab .ri:not(.ok) { border:2px solid var(--border2); }
+.rc.hoy { box-shadow:0 0 0 2px var(--txt); }
+.rc.futuro { opacity:.3; }
+.pas-ring { background:transparent; border:3px solid var(--cyan); }
 </style>
 </head>
 <body>
@@ -412,6 +435,18 @@ body { text-align:center; }
       <div class="stat-card"><div class="stat-val" id="stats-mejor">0</div><div class="stat-lbl">Mejor racha</div></div>
     </div>
 
+    <div class="sec-label">👟 Pasos</div>
+    <div class="card" style="padding:16px;">
+      <div class="seg">
+        <button id="pr-30" class="on" onclick="pasosRango(30)">30 días</button>
+        <button id="pr-90" onclick="pasosRango(90)">90 días</button>
+        <button id="pr-0" onclick="pasosRango(0)">Todo</button>
+      </div>
+      <div class="grid2" id="pasos-tiles" style="margin:0 0 12px;"></div>
+      <div class="chart-wrap"><canvas id="pasos-chart"></canvas></div>
+      <div style="margin-top:8px; font-size:11px; color:var(--txt3);">Barra llena = 10.000 pasos o más. La línea discontinua marca el objetivo.</div>
+    </div>
+
     <div class="sec-label">📆 Calendario de hábito</div>
     <div class="card" style="padding:16px;">
       <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
@@ -425,11 +460,10 @@ body { text-align:center; }
       <div id="cal-dias" style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:6px;"></div>
       <div id="cal-grid" style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px;"></div>
       <div class="leyenda">
-        <span><i class="cam"></i>Caminata</span>
-        <span><i class="bici"></i>Bici</span>
-        <span><i class="ambas"></i>Las dos</span>
+        <span><i class="cam"></i>Entreno (caminata o bici)</span>
+        <span><i class="pas-ring"></i>Pasos: el anillo se llena hasta 10.000</span>
       </div>
-      <div style="margin-top:10px; font-size:11px; color:var(--txt3);">Un día se marca cuando registras un entrenamiento.</div>
+      <div id="cal-nota" style="margin-top:10px; font-size:11px; color:var(--txt3);">El círculo se rellena en verde si registras un entreno. El anillo azul se completa al llegar a 10.000 pasos (a 5.000, medio anillo).</div>
     </div>
 
     <div class="sec-label">Esta semana vs anterior (lunes a domingo)</div>
@@ -828,8 +862,7 @@ function renderHoy() {
   const lun = lunesDe(hoy);
   $('hoy-semana').innerHTML = ['L','M','X','J','V','S','D'].map((l, i) => {
     const f = addDias(lun, i);
-    const cls = 'habit-dot' + claseDia(R.tipos, f) + (f === hoy ? ' hoy' : '') + (f > hoy ? ' futuro' : '');
-    return `<div><div class="habit-day">${l}</div><div class="${cls}">✓</div></div>`;
+    return `<div><div class="habit-day">${l}</div>${circuloDia(f, R.ok, hoy, 'hab')}</div>`;
   }).join('');
 
   pintarPasos(true);
@@ -1201,6 +1234,7 @@ function pintarLinea(clave, canvasId, labels, datasets, leyenda = false) {
 // ════════════════════════════════════════
 function renderStats() {
   renderCalendario();
+  renderPasosStats();
   const hoy = hoyStr();
 
   // Racha
@@ -1443,23 +1477,67 @@ function calendarioMes(d) {
   if (S.calM < 0) { S.calM = 11; S.calY--; }
   renderCalendario();
 }
+// Círculo de un día: verde = entreno (caminata o bici); anillo azul = pasos sobre 10.000
+function circuloDia(f, ok, hoy, tipo) {
+  const p = f <= hoy ? (S.data.pasos[f] || 0) : 0;
+  const deg = Math.min(360, Math.round(p / 10000 * 360));
+  const hecho = ok.has(f) && f <= hoy;
+  const estilo = p ? `--p:${deg}deg; --trk:rgba(58,184,212,.2);` : '';
+  const dia = parseInt(f.slice(8), 10);
+  const txt = tipo === 'hab' ? '✓' : (hecho ? '✓' : dia);
+  return `<div class="rc ${tipo}${f === hoy ? ' hoy' : ''}${f > hoy ? ' futuro' : ''}" style="${estilo}"${p ? ` title="${p.toLocaleString('es-ES')} pasos"` : ''}><div class="ri${hecho ? ' ok' : ''}">${txt}</div></div>`;
+}
 function renderCalendario() {
   $('cal-titulo').textContent = `${MESES[S.calM]} ${S.calY}`;
   $('cal-dias').innerHTML = ['L','M','X','J','V','S','D'].map(d => `<div style="text-align:center; font-size:10px; color:var(--txt3); font-weight:600; padding:4px 0;">${d}</div>`).join('');
 
-  const { ok, tipos } = calcRacha();
+  const { ok } = calcRacha();
   const offset = (new Date(S.calY, S.calM, 1).getDay() + 6) % 7;
   const total = new Date(S.calY, S.calM + 1, 0).getDate();
   const hoy = hoyStr();
-  let html = '<div></div>'.repeat(offset), cumplidos = 0;
+  let html = '<div></div>'.repeat(offset), cumplidos = 0, d10 = 0;
   for (let d = 1; d <= total; d++) {
     const f = `${S.calY}-${pad(S.calM + 1)}-${pad(d)}`;
-    const hecho = ok.has(f) && f <= hoy;
-    if (hecho) cumplidos++;
-    html += `<div class="cal-cell${hecho ? claseDia(tipos, f) : ''}${f === hoy ? ' hoy' : ''}${f > hoy ? ' futuro' : ''}">${hecho ? '✓' : d}</div>`;
+    if (ok.has(f) && f <= hoy) cumplidos++;
+    if (f <= hoy && (S.data.pasos[f] || 0) >= 10000) d10++;
+    html += circuloDia(f, ok, hoy, 'cal');
   }
   $('cal-grid').innerHTML = html;
-  $('cal-mes-sub').textContent = `${cumplidos} ${cumplidos === 1 ? 'día entrenado' : 'días entrenados'} este mes`;
+  $('cal-mes-sub').textContent = `${cumplidos} ${cumplidos === 1 ? 'día entrenado' : 'días entrenados'} · ${d10} con 10.000+ pasos`;
+}
+
+// ── Pasos: resumen y gráfico ──
+function pasosRango(n) {
+  S.pasosRango = n;
+  renderPasosStats();
+}
+function renderPasosStats() {
+  const n = S.pasosRango === undefined ? 30 : S.pasosRango, hoy = hoyStr();
+  [30, 90, 0].forEach(k => $('pr-' + k).classList.toggle('on', k === n));
+  const fechasReg = Object.keys(S.data.pasos).filter(f => f <= hoy).sort();
+  let desde = n ? addDias(hoy, -(n - 1)) : (fechasReg[0] || hoy);
+  const dias = [];
+  for (let f = desde; f <= hoy; f = addDias(f, 1)) dias.push(f);
+  const vals = dias.map(f => S.data.pasos[f] || null);
+  const reg = vals.filter(v => v);
+  const d10 = reg.filter(v => v >= 10000).length;
+  const media = reg.length ? Math.round(reg.reduce((a, b) => a + b, 0) / reg.length) : null;
+  let mejor = 0, mejorF = null;
+  dias.forEach((f, i) => { if (vals[i] && vals[i] > mejor) { mejor = vals[i]; mejorF = f; } });
+  $('pasos-tiles').innerHTML = `
+    <div class="stat-card"><div class="stat-val">${media ? media.toLocaleString('es-ES') : '—'}</div><div class="stat-lbl">Media diaria</div></div>
+    <div class="stat-card"><div class="stat-val">${d10}<span class="stat-unit"> de ${reg.length}</span></div><div class="stat-lbl">Días con 10.000+</div><div class="stat-sub">${reg.length ? Math.round(d10 / reg.length * 100) + ' % de los días' : ''}</div></div>
+    <div class="stat-card"><div class="stat-val">${mejor ? mejor.toLocaleString('es-ES') : '—'}</div><div class="stat-lbl">Mejor día</div><div class="stat-sub">${mejorF ? fmtFecha(mejorF) : ''}</div></div>
+    <div class="stat-card"><div class="stat-val">${reg.length ? reg.reduce((a, b) => a + b, 0).toLocaleString('es-ES') : '—'}</div><div class="stat-lbl">Pasos totales</div></div>`;
+  if (S.charts.pasos) S.charts.pasos.destroy();
+  S.charts.pasos = new Chart($('pasos-chart').getContext('2d'), {
+    type: 'bar',
+    data: { labels: dias.map(f => { const d = parseISO(f); return `${d.getDate()}/${d.getMonth() + 1}`; }), datasets: [
+      { type: 'bar', data: vals, backgroundColor: vals.map(v => v >= 10000 ? '#3ab8d4' : 'rgba(58,184,212,.35)'), borderRadius: 3, order: 2 },
+      { type: 'line', data: dias.map(() => 10000), borderColor: '#f0b429', borderDash: [6, 4], borderWidth: 1.5, pointRadius: 0, order: 1 }
+    ] },
+    options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: { ...ejes, ticks: { ...ejes.ticks, maxTicksLimit: 8, autoSkip: true } }, y: { ...ejes, beginAtZero: true } } }
+  });
 }
 
 // ════════════════════════════════════════
