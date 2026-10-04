@@ -682,6 +682,10 @@ function showToast(msg, icon = '✓') {
 const openModal = id => $(id).classList.remove('hidden');
 const closeModal = id => $(id).classList.add('hidden');
 
+// Espera a Firebase como mucho `ms`; si no contesta, avisa en vez de quedarse colgado en silencio
+function conTiempo(promesa, ms = 12000) {
+  return Promise.race([promesa, new Promise((_, rej) => setTimeout(() => rej({ code: 'unavailable', message: 'Firebase no ha respondido a tiempo (sin conexión o muy lenta)' }), ms))]);
+}
 function errorFb(e, accion = 'guardar') {
   console.error(e);
   const cod = e?.code || '', msg = e?.message || '';
@@ -998,16 +1002,16 @@ async function guardarPasosLote() {
   if (!pasosLoteGuardarActual()) return;
   const fechas = Object.keys(S.pl.borr).filter(f => f <= hoyStr());
   if (!fechas.length) { showToast('No hay nada nuevo que guardar', 'ℹ️'); return; }
-  $('pl-guardar').disabled = true;
+  $('pl-guardar').disabled = true; $('pl-guardar').textContent = 'Guardando…';
   try {
     for (let i = 0; i < fechas.length; i += 10)
-      await Promise.all(fechas.slice(i, i + 10).map(f => window._fb.save('pasos_dia', f, { fecha: f, pasos: S.pl.borr[f] })));
+      await conTiempo(Promise.all(fechas.slice(i, i + 10).map(f => window._fb.save('pasos_dia', f, { fecha: f, pasos: S.pl.borr[f] }))));
     closeModal('modal-pasos');
     showToast(`${fechas.length} día${fechas.length > 1 ? 's' : ''} de pasos guardado${fechas.length > 1 ? 's' : ''}`, '👟');
     S.pl = null;
     await refrescar();
   } catch (e) { errorFb(e, 'guardar'); }
-  $('pl-guardar').disabled = false;
+  $('pl-guardar').disabled = false; if (S.pl) pasosLotePintar(); else $('pl-guardar').textContent = 'Guardar todo';
 }
 
 async function guardarPasos() {
@@ -1015,7 +1019,7 @@ async function guardarPasos() {
   const f = hoyStr();
   if (isNaN(v) || v < 0 || v > 100000) { showToast('Introduce un número de pasos válido', '⚠️'); return; }
   try {
-    await window._fb.save('pasos_dia', f, { fecha: f, pasos: v });
+    await conTiempo(window._fb.save('pasos_dia', f, { fecha: f, pasos: v }));
     showToast('Pasos guardados', '👟');
     await refrescar();
   } catch (e) { errorFb(e, 'guardar'); }
