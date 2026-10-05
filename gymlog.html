@@ -61,9 +61,10 @@ window.dispatchEvent(new Event('fb-ready'));
   --txt:#f5f5f5; --txt2:#a1a1aa; --txt3:#71717a;
   --ink:#f5f5f5; --onink:#000; --e1:#6b6b72; --trkc:#34343a; --pas:#8a8a92; --sel:rgba(255,255,255,.1); --navbg:rgba(0,0,0,.92);
   --accent:var(--ink); --accent2:var(--txt2); --green:var(--ink); --green2:var(--txt2); --orange:var(--txt); --cyan:var(--txt2); --red:var(--txt2); --ent:var(--ink);
-  --nav-h:60px;
+  --nav-h:60px; color-scheme:dark;
 }
 html[data-theme="claro"] {
+  color-scheme:light;
   --bg:#f4f4f5; --bg2:#fff; --bg3:#f0f0f2; --bg4:#e4e4e7;
   --border:#e4e4e7; --border2:#d4d4d8; --line:#e4e4e7;
   --txt:#111; --txt2:#6b6b72; --txt3:#a1a1aa;
@@ -160,6 +161,9 @@ canvas { width:100% !important; }
 .empty { text-align:center; padding:16px; color:var(--txt3); font-size:13px; }
 .warn { margin:0 16px 12px; background:var(--bg3); border:1px solid var(--border2); color:var(--txt); border-radius:12px; padding:12px 14px; font-size:13px; line-height:1.5; }
 .fecha-sel { display:grid; grid-template-columns:.8fr 1.4fr 1fr; gap:8px; }
+.fecha-sel:has(.fecha-in) { grid-template-columns:1fr; }
+.fecha-in { min-height:46px; display:block; text-align:center; }
+.fecha-in::-webkit-date-and-time-value { text-align:center; margin:0 auto; }
 .fecha-sel select.inp { padding:12px 8px; text-align:center; text-align-last:center; }
 .habit-top { display:flex; align-items:center; gap:16px; }
 .habit-num { font-size:48px; font-weight:800; font-family:'DM Mono',monospace; color:var(--orange); line-height:1; }
@@ -592,13 +596,13 @@ body { text-align:center; }
     <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px;">
       <button class="btn btn-ghost" style="width:56px; padding:12px 0; font-size:20px;" onclick="pasosLoteIr(-1)">‹</button>
       <div style="text-align:center; flex:1;">
-        <div id="pl-fecha" style="font-weight:600; font-size:16px;"></div>
+        <input type="date" id="pl-fecha" class="inp fecha-in" style="font-weight:600; font-size:16px; padding:8px 10px; min-height:42px;">
         <div id="pl-estado" style="font-size:12px; color:var(--txt2); margin-top:2px;"></div>
       </div>
       <button class="btn btn-ghost" style="width:56px; padding:12px 0; font-size:20px;" id="pl-sig" onclick="pasosLoteIr(1)">›</button>
     </div>
     <div class="input-wrap"><label>Pasos de ese día (Huawei Salud)</label><input type="number" enterkeyhint="next" class="inp" id="pl-input" placeholder="0" style="font-size:22px;"></div>
-    <div style="font-size:12px; color:var(--txt2); margin:-4px 0 12px; text-align:center;">Intro o ‹ te lleva al día anterior. Nada se guarda hasta que pulses "Guardar todo".</div>
+    <div style="font-size:12px; color:var(--txt2); margin:-4px 0 12px; text-align:center;">Toca la fecha para elegir otro día, o usa ‹ › (Intro también va al día anterior). Nada se guarda hasta que pulses "Guardar todo".</div>
     <div id="pl-pend" style="font-size:12px; color:var(--txt2); line-height:1.7; text-align:center; margin-bottom:12px;"></div>
     <div style="display:flex; gap:10px;">
       <button class="btn btn-ghost" onclick="closeModal('modal-pasos')">Cancelar</button>
@@ -698,24 +702,14 @@ function errorFb(e, accion = 'guardar') {
 // Selector de fecha con tres desplegables (día / mes / año): en el iPhone se abren como ruedas
 const MESES = ['Enero','Febrero','Marzo','Abril','Mayo','Junio','Julio','Agosto','Septiembre','Octubre','Noviembre','Diciembre'];
 function montarFechaSel(id, iso, alCambiar) {
-  const cont = $(id), f = parseISO(iso || hoyStr()), anio = new Date().getFullYear();
-  cont.innerHTML = `<select class="inp"></select>
-    <select class="inp">${MESES.map((m, i) => `<option value="${i + 1}">${m}</option>`).join('')}</select>
-    <select class="inp">${[...new Set([anio - 1, anio, anio + 1, f.getFullYear()])].sort().map(y => `<option value="${y}">${y}</option>`).join('')}</select>`;
-  const [sd, sm, sy] = cont.querySelectorAll('select');
-  const rellenarDias = dia => {
-    const n = new Date(+sy.value, +sm.value, 0).getDate(); // último día del mes elegido
-    sd.innerHTML = Array.from({ length: n }, (_, i) => `<option value="${i + 1}">${i + 1}</option>`).join('');
-    sd.value = Math.min(Math.max(dia || 1, 1), n);
-  };
-  sm.value = f.getMonth() + 1; sy.value = f.getFullYear();
-  rellenarDias(f.getDate());
-  sm.onchange = sy.onchange = () => { rellenarDias(+sd.value); if (alCambiar) alCambiar(); };
-  sd.onchange = () => { if (alCambiar) alCambiar(); };
+  const cont = $(id);
+  cont.innerHTML = '<input type="date" class="inp fecha-in">';
+  const inp = cont.querySelector('input');
+  inp.value = iso || hoyStr();
+  inp.onchange = () => { if (!inp.value) inp.value = hoyStr(); if (alCambiar) alCambiar(); };
 }
 function leerFechaSel(id) {
-  const [sd, sm, sy] = $(id).querySelectorAll('select');
-  return `${sy.value}-${pad(sm.value)}-${pad(sd.value)}`;
+  return $(id).querySelector('input').value || hoyStr();
 }
 
 // Duración: selectores horas / minutos / segundos (se guarda en minutos, con decimales para los segundos)
@@ -973,7 +967,7 @@ function pasosLoteGuardarActual() {
 }
 function pasosLotePintar() {
   const f = S.pl.dia, hoy = hoyStr();
-  $('pl-fecha').textContent = fmtFechaLarga(f) + (f === hoy ? ' (hoy)' : '');
+  $('pl-fecha').value = f; $('pl-fecha').max = hoy;
   const g = S.data.pasos[f];
   $('pl-input').value = f in S.pl.borr ? S.pl.borr[f] : (g != null ? g : '');
   $('pl-estado').textContent = f in S.pl.borr ? 'Pendiente de guardar' : (g != null ? 'Ya guardado: ' + g.toLocaleString('es-ES') : 'Sin registrar');
@@ -984,10 +978,18 @@ function pasosLotePintar() {
     : 'Aún no has anotado ningún día.';
   $('pl-guardar').textContent = pend.length ? `Guardar todo (${pend.length})` : 'Guardar todo';
 }
+function pasosLoteFechaElegida() {
+  const v = $('pl-fecha').value;
+  if (!v || v > hoyStr()) { pasosLotePintar(); return; }
+  if (!pasosLoteGuardarActual()) { pasosLotePintar(); return; }
+  S.pl.dia = v; pasosLotePintar();
+  $('pl-input').focus(); $('pl-input').select();
+}
 function abrirPasosLote() {
   S.pl = { dia: addDias(hoyStr(), -1), borr: {} };
   pasosLotePintar();
   openModal('modal-pasos');
+  $('pl-fecha').onchange = pasosLoteFechaElegida;
   setTimeout(() => $('pl-input').focus(), 50);
 }
 function pasosLoteIr(delta) {
