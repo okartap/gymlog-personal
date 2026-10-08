@@ -300,7 +300,7 @@ body { text-align:center; }
 
     <div class="card hoy-c">
       <div class="hoy-fila">
-        <div style="font-weight:600; font-size:13px; white-space:nowrap;">👟 Pasos hoy</div>
+        <div style="text-align:left; white-space:nowrap;"><div style="font-weight:600; font-size:13px;">👟 Pasos de ayer</div><div class="hoy-tiny" id="hoy-pasos-dia"></div></div>
         <input type="number" inputmode="numeric" class="inp" id="hoy-pasos" placeholder="0" style="padding:8px 10px; font-size:15px; max-width:110px;">
         <button class="btn btn-primary" style="width:auto; padding:9px 14px; font-size:13px;" onclick="guardarPasos()">Guardar</button>
       </div>
@@ -866,11 +866,11 @@ function itemActividad(a, conBorrar) {
 // ════════════════════════════════════════
 // RACHA (hábito): un día cumple si hay un entrenamiento registrado (caminata y/o bici)
 // ════════════════════════════════════════
-function rachaDe(set, hoy) {
+function rachaDe(set, hoy, tol = 1) { // tol: días del principio (hoy, y ayer en pasos) que aún pueden estar sin anotar sin romper la racha
   let actual = 0;
   for (let i = 0; i < 730; i++) {
     const f = addDias(hoy, -i);
-    if (set.has(f)) actual++; else if (i > 0) break; // hoy sin cumplir todavía no rompe la racha
+    if (set.has(f)) actual++; else if (i >= tol) break;
   }
   let mejor = 0, run = 0, prev = null;
   [...set].filter(f => f <= hoy).sort().forEach(f => {
@@ -891,7 +891,7 @@ function calcRacha() {
   const pas = new Set(Object.keys(S.data.pasos).filter(f => (S.data.pasos[f] || 0) >= 10000));
   const amb = new Set([...ok].filter(f => pas.has(f)));
   const e = rachaDe(ok, hoy);
-  return { ok, tipos, pas, amb, actual: e.actual, mejor: e.mejor, rPas: rachaDe(pas, hoy), rAmb: rachaDe(amb, hoy) };
+  return { ok, tipos, pas, amb, actual: e.actual, mejor: e.mejor, rPas: rachaDe(pas, hoy, 2), rAmb: rachaDe(amb, hoy, 2) };
 }
 // Clase de color del día: verde caminata, morado bici, mitad y mitad si hubo las dos
 function claseDia(tipos, f) {
@@ -914,10 +914,10 @@ function renderHoy() {
   $('rc-ent').textContent = R.actual; $('rc-ent-m').textContent = 'mejor ' + R.mejor;
   $('rc-pas').textContent = R.rPas.actual; $('rc-pas-m').textContent = 'mejor ' + R.rPas.mejor;
   $('rc-amb').textContent = R.rAmb.actual; $('rc-amb-m').textContent = 'mejor ' + R.rAmb.mejor;
-  const pHoy = S.data.pasos[hoy] || 0, hechoHoy = R.ok.has(hoy);
+  const pAyer = S.data.pasos[addDias(hoy, -1)], hechoHoy = R.ok.has(hoy);
   $('hoy-racha-sub').textContent = hechoHoy ? 'Hoy cumplido ✓' : 'Hoy aún no cumplido';
   $('hoy-racha-sub').style.color = hechoHoy ? 'var(--green)' : 'var(--txt3)';
-  $('hoy-racha-det').textContent = 'Entreno ' + (hechoHoy ? '✓' : '—') + ' · Pasos ' + pHoy.toLocaleString('es-ES');
+  $('hoy-racha-det').textContent = 'Entreno ' + (hechoHoy ? '✓' : '—') + ' · Pasos ayer ' + (pAyer != null ? pAyer.toLocaleString('es-ES') : '—');
   const lg = $('hoy-logo'); if (lg && !lg.getAttribute('src')) { const ic = document.querySelector('link[rel="apple-touch-icon"]'); if (ic) lg.src = ic.href; }
   const lun = lunesDe(hoy);
   $('hoy-semana').innerHTML = ['L','M','X','J','V','S','D'].map((l, i) => {
@@ -949,10 +949,13 @@ function renderHoy() {
 
 // Pasos del día elegido en el selector (hoy por defecto)
 function pintarPasos() {
-  const v = S.data.pasos[hoyStr()] || 0;
-  $('hoy-pasos').value = v || '';
+  const ayer = addDias(hoyStr(), -1), v = S.data.pasos[ayer] || 0, hay = ayer in S.data.pasos;
+  $('hoy-pasos-dia').textContent = fmtFechaLarga(ayer);
+  $('hoy-pasos').value = hay ? v : '';
   $('hoy-pasos-bar').style.width = Math.min(100, v / 100) + '%';
-  $('hoy-pasos-lbl').textContent = (v ? v.toLocaleString('es-ES') : '0') + ' / 10.000';
+  $('hoy-pasos-lbl').textContent = hay ? v.toLocaleString('es-ES') + ' / 10.000' : 'Falta anotar los pasos de ayer';
+  $('hoy-pasos-lbl').style.color = hay ? 'var(--txt2)' : 'var(--txt)';
+  $('hoy-pasos-lbl').style.fontWeight = hay ? '400' : '600';
 }
 
 // ── Pasos de varios días: se teclean uno a uno y se guardan todos de golpe ──
@@ -986,7 +989,7 @@ function pasosLoteFechaElegida() {
   $('pl-input').focus(); $('pl-input').select();
 }
 function abrirPasosLote() {
-  S.pl = { dia: addDias(hoyStr(), -1), borr: {} };
+  S.pl = { dia: addDias(hoyStr(), -2), borr: {} };
   pasosLotePintar();
   openModal('modal-pasos');
   $('pl-fecha').onchange = pasosLoteFechaElegida;
@@ -1018,11 +1021,11 @@ async function guardarPasosLote() {
 
 async function guardarPasos() {
   const v = parseInt($('hoy-pasos').value);
-  const f = hoyStr();
+  const f = addDias(hoyStr(), -1);
   if (isNaN(v) || v < 0 || v > 100000) { showToast('Introduce un número de pasos válido', '⚠️'); return; }
   try {
     await conTiempo(window._fb.save('pasos_dia', f, { fecha: f, pasos: v }));
-    showToast('Pasos guardados', '👟');
+    showToast('Pasos de ayer guardados', '👟');
     await refrescar();
   } catch (e) { errorFb(e, 'guardar'); }
 }
