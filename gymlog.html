@@ -713,6 +713,7 @@ function leerFechaSel(id) {
 }
 
 // Duración: selectores horas / minutos / segundos (se guarda en minutos, con decimales para los segundos)
+const DUR_HABITUAL = 98.5; // 1:38:30, duración habitual de un entreno nuevo
 function montarDurSel(id, minutos) {
   const tot = Math.round((minutos || 0) * 60), h = Math.floor(tot / 3600), m = Math.floor(tot % 3600 / 60), sg = tot % 60;
   const opc = (n, suf) => Array.from({ length: n }, (_, i) => `<option value="${i}">${i} ${suf}</option>`).join('');
@@ -1042,7 +1043,7 @@ function renderActividad() {
     $('act-dolor-pie').innerHTML = opcionesDolor();
     $('act-dolor-rodilla').value = '0'; $('act-dolor-pie').value = '0';
   }
-  if (!$('ds-act').children.length) montarDurSel('ds-act', 0);
+  if (!$('ds-act').children.length) montarDurSel('ds-act', DUR_HABITUAL);
   montarFechaSel('fs-act', hoyStr());
 }
 function elegirTipo(t) {
@@ -1076,7 +1077,7 @@ async function guardarActividad() {
     await window._fb.add('actividades', dato);
     ['act-distancia','act-calorias','act-fc','act-vatios','act-zwift','act-notas'].forEach(id => $(id).value = '');
     $('act-dolor-rodilla').value = '0'; $('act-dolor-pie').value = '0';
-    montarDurSel('ds-act', 0);
+    montarDurSel('ds-act', DUR_HABITUAL);
     montarFechaSel('fs-act', hoyStr());
     showToast('Actividad guardada', S.tipo === 'bici' ? '🚴' : '🚶');
     await refrescar();
