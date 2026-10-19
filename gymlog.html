@@ -60,11 +60,12 @@ window.dispatchEvent(new Event('fb-ready'));
   --border:#26262a; --border2:#3a3a40; --line:#26262a;
   --txt:#f5f5f5; --txt2:#a1a1aa; --txt3:#71717a;
   --ink:#f5f5f5; --onink:#000; --e1:#6b6b72; --trkc:#34343a; --pas:#8a8a92; --sel:rgba(255,255,255,.1); --navbg:rgba(0,0,0,.92);
+  --sc:#86c29a; --onsc:#0b1a10;
   --accent:var(--ink); --accent2:var(--txt2); --green:var(--ink); --green2:var(--txt2); --orange:var(--txt); --cyan:var(--txt2); --red:var(--txt2); --ent:var(--ink);
   --nav-h:60px; color-scheme:dark;
 }
 html[data-theme="claro"] {
-  color-scheme:light;
+  color-scheme:light; --sc:#3f8758; --onsc:#fff;
   --bg:#f4f4f5; --bg2:#fff; --bg3:#f0f0f2; --bg4:#e4e4e7;
   --border:#e4e4e7; --border2:#d4d4d8; --line:#e4e4e7;
   --txt:#111; --txt2:#6b6b72; --txt3:#a1a1aa;
@@ -228,10 +229,10 @@ body { text-align:center; }
 .hoy-hd { position:relative; }
 .tema-btn { position:absolute; right:16px; top:calc(env(safe-area-inset-top) + 14px); width:36px; height:36px; border-radius:50%; border:1px solid var(--border2); background:var(--bg2); color:var(--txt); font-size:16px; cursor:pointer; }
 .hoy-hd .page-title, .hoy-hd .page-sub { text-align:left; }
-.r3 { display:grid; grid-template-columns:repeat(3,1fr); gap:6px; text-align:center; }
-.r3 .tt { font-size:11px; color:var(--txt2); }
+.r3 { display:grid; grid-template-columns:repeat(4,1fr); gap:6px; text-align:center; }
+.r3 .tt { font-size:10.5px; color:var(--txt2); }
 .r3>div+div { border-left:1px solid var(--border); }
-.r3 .nn { font-size:28px; font-weight:700; color:var(--txt); font-family:'Syne',sans-serif; line-height:1.1; }
+.r3 .nn { font-size:26px; font-weight:700; color:var(--txt); font-family:'Syne',sans-serif; line-height:1.1; }
 .r3 .ss { font-size:10px; color:var(--txt3); }
 .hoy-link { background:none; border:none; color:var(--txt2); text-decoration:underline; font-size:11px; cursor:pointer; padding:2px 0; font-family:inherit; }
 .heat { display:flex; gap:2.5px; justify-content:center; }
@@ -240,6 +241,13 @@ body { text-align:center; }
 .heat u.e1 { background:var(--e1); } .heat u.e2 { background:var(--ink); }
 .heat u.pp { background:transparent; box-shadow:inset 0 0 0 1.5px var(--e1); }
 .heat u.f { opacity:.35; }
+.heat u.e1.nb { background:var(--sc); opacity:.55; } .heat u.e2.nb { background:var(--sc); }
+.heat u.nb:not(.e1):not(.e2) { background:transparent; box-shadow:inset 0 0 0 1.5px var(--sc); }
+.leyenda u.nb { background:var(--sc); } .leyenda u.nb.ring { background:transparent; box-shadow:inset 0 0 0 1.5px var(--sc); }
+.pill { display:inline-flex; border:1px solid var(--border2); border-radius:20px; overflow:hidden; flex-shrink:0; }
+.pill button { background:none; border:none; color:var(--txt2); padding:6px 12px; font-size:12px; font-family:inherit; cursor:pointer; }
+.pill button.on { background:var(--ink); color:var(--onink); font-weight:600; }
+.pill.off { opacity:.4; pointer-events:none; }
 .leyenda u { display:inline-block; width:10px; height:10px; border-radius:3px; vertical-align:-1px; margin-right:4px; background:var(--bg3); }
 .leyenda u.e1 { background:var(--e1); } .leyenda u.e2 { background:var(--ink); } .leyenda u.pp { background:transparent; box-shadow:inset 0 0 0 1.5px var(--e1); }
 .fecha-sel.dur-sel { grid-template-columns:1fr 1fr 1fr; }
@@ -264,6 +272,8 @@ body { text-align:center; }
 .rc.hab .ri { font-size:15px; font-weight:700; color:transparent; }
 .ri.ok { background:var(--ink); color:var(--onink); font-weight:700; }
 .rc.hab .ri.ok { color:var(--onink); }
+.ri.ok.nb, .rc.hab .ri.ok.nb { background:var(--sc); color:var(--onsc); }
+.ri.nb:not(.ok) { box-shadow:inset 0 0 0 2.5px var(--sc); }
 .rc.hoy { box-shadow:0 0 0 2px var(--bg2), 0 0 0 3.5px var(--txt2); }
 .rc.futuro { opacity:.3; }
 .pas-ring { background:transparent; border:3px solid var(--pas); }
@@ -290,6 +300,7 @@ body { text-align:center; }
         <div><div class="tt">🏃 Entrenos</div><div class="nn" id="rc-ent">0</div><div class="ss" id="rc-ent-m"></div></div>
         <div><div class="tt">👟 Pasos</div><div class="nn" id="rc-pas">0</div><div class="ss" id="rc-pas-m"></div></div>
         <div><div class="tt">⭐ Ambas</div><div class="nn" id="rc-amb">0</div><div class="ss" id="rc-amb-m"></div></div>
+        <div><div class="tt">🍺 Sin cerveza</div><div class="nn" id="rc-sc">0</div><div class="ss" id="rc-sc-m"></div></div>
       </div>
       <div class="hoy-fila" style="margin-top:8px;">
         <span class="hoy-tiny" id="hoy-racha-sub"></span>
@@ -308,6 +319,10 @@ body { text-align:center; }
       <div class="hoy-fila">
         <span class="hoy-tiny" id="hoy-pasos-lbl">—</span>
         <button class="hoy-link" onclick="abrirPasosLote()">📅 Otro día…</button>
+      </div>
+      <div class="hoy-fila" id="hoy-cerv-fila" style="margin-top:10px; padding-top:10px; border-top:1px solid var(--line);">
+        <div style="text-align:left;"><div style="font-weight:600; font-size:13px;">🍺 Cerveza de ayer</div><div class="hoy-tiny" id="hoy-cerv-lbl"></div></div>
+        <div class="pill"><button id="hc-no" onclick="marcarCervezaAyer(false)">Sin cerveza</button><button id="hc-si" onclick="marcarCervezaAyer(true)">Bebí</button></div>
       </div>
     </div>
 
@@ -488,6 +503,7 @@ body { text-align:center; }
       <div class="heat" id="heat"></div>
       <div class="leyenda">
         <span><u></u>nada</span><span><u class="e1"></u>entreno</span><span><u class="e2"></u>entreno + 10.000 pasos</span><span><u class="pp"></u>solo 10.000 pasos</span>
+        <span><u class="nb"></u>con color verde = sin cerveza</span>
       </div>
       <div style="margin-top:8px; font-size:11px; color:var(--txt3);">Últimas 26 semanas, de lunes (arriba) a domingo (abajo).</div>
     </div>
@@ -508,6 +524,7 @@ body { text-align:center; }
         <span><i class="ley-ent"></i>Entreno (caminata o bici)</span>
         <span><i class="pas-ring"></i>Pasos: el anillo se llena hasta 10.000</span>
         <span><i style="background:var(--bg2); border:2px solid var(--ink); width:7px; height:7px;"></i>Día con bici</span>
+        <span><i style="background:var(--sc);"></i>Día sin cerveza</span>
       </div>
       <div id="cal-nota" style="margin-top:10px; font-size:11px; color:var(--txt3);">El círculo se rellena en verde si registras un entreno. El anillo lila se completa al llegar a 10.000 pasos (a 5.000, medio anillo).</div>
     </div>
@@ -592,7 +609,7 @@ body { text-align:center; }
 <div id="modal-pasos" class="modal-overlay hidden">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
-    <div class="modal-title">Pasos de varios días</div>
+    <div class="modal-title">Pasos y cerveza de varios días</div>
     <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px;">
       <button class="btn btn-ghost" style="width:56px; padding:12px 0; font-size:20px;" onclick="pasosLoteIr(-1)">‹</button>
       <div style="text-align:center; flex:1;">
@@ -602,6 +619,7 @@ body { text-align:center; }
       <button class="btn btn-ghost" style="width:56px; padding:12px 0; font-size:20px;" id="pl-sig" onclick="pasosLoteIr(1)">›</button>
     </div>
     <div class="input-wrap"><label>Pasos de ese día (Huawei Salud)</label><input type="number" enterkeyhint="next" class="inp" id="pl-input" placeholder="0" style="font-size:22px;"></div>
+    <div class="hoy-fila" id="pl-cerv-row" style="margin:0 0 12px;"><div style="font-weight:600; font-size:13px;">🍺 Cerveza ese día</div><div class="pill" id="pl-pill"><button id="pl-no" onclick="plCerv(false)">Sin cerveza</button><button id="pl-si" onclick="plCerv(true)">Bebí</button></div></div>
     <div style="font-size:12px; color:var(--txt2); margin:-4px 0 12px; text-align:center;">Toca la fecha para elegir otro día, o usa ‹ › (Intro también va al día anterior). Nada se guarda hasta que pulses "Guardar todo".</div>
     <div id="pl-pend" style="font-size:12px; color:var(--txt2); line-height:1.7; text-align:center; margin-bottom:12px;"></div>
     <div style="display:flex; gap:10px;">
@@ -739,9 +757,9 @@ const S = { tipo: 'caminar', data: null, charts: {}, objKm: 75, objPeso: null, c
 async function cargarTodo() {
   S.errLectura = null;
   const g = (col, ord) => window._fb.getAll(col, ord).catch(e => { console.warn('No se pudo leer', col, e); S.errLectura = S.errLectura || (e?.code || e?.message || 'error'); return []; });
-  const [actNuevas, cardiosViejos, pesos, comp, pasosDia, checkins, cfg] = await Promise.all([
+  const [actNuevas, cardiosViejos, pesos, comp, pasosDia, checkins, cfg, cervDia] = await Promise.all([
     g('actividades', '_ts'), g('cardios', '_ts'), g('pesos', '_ts'), g('composicion', '_ts'),
-    g('pasos_dia', '_ts'), g('checkins', '_ts'), g('config', null)
+    g('pasos_dia', '_ts'), g('checkins', '_ts'), g('config', null), g('cerveza_dia', null)
   ]);
 
   // Actividades: las nuevas + el cardio antiguo (se conserva el historial)
@@ -763,7 +781,7 @@ async function cargarTodo() {
   S.objPeso = cfgPeso?.valor ?? null;
   S.objKm = cfgKm?.valor ?? 75;
 
-  S.data = { acts, pasos, pesos: pesosOrd, comp: compOrd };
+  S.data = { acts, pasos, pesos: pesosOrd, comp: compOrd, cerv: new Set(cervDia.filter(c => c.fecha && c.cerveza !== false).map(c => c.fecha)) };
 }
 
 async function refrescar() {
@@ -867,6 +885,9 @@ function itemActividad(a, conBorrar) {
 // ════════════════════════════════════════
 // RACHA (hábito): un día cumple si hay un entrenamiento registrado (caminata y/o bici)
 // ════════════════════════════════════════
+// Cerveza: el registro empieza el 18/10/2026. Cuenta como "sin cerveza" todo día desde esa fecha hasta ayer que no esté marcado como cerveza (hoy aún no se sabe)
+const DESDE_CERVEZA = '2026-10-18';
+function sinCerveza(f) { return f >= DESDE_CERVEZA && f < hoyStr() && !S.data.cerv.has(f); }
 function rachaDe(set, hoy, tol = 1) { // tol: días del principio (hoy, y ayer en pasos) que aún pueden estar sin anotar sin romper la racha
   let actual = 0;
   for (let i = 0; i < 730; i++) {
@@ -880,6 +901,11 @@ function rachaDe(set, hoy, tol = 1) { // tol: días del principio (hoy, y ayer e
   });
   return { actual, mejor: Math.max(mejor, actual) };
 }
+function sinCervezaSet(hoy) {
+  const sc = new Set();
+  for (let f = DESDE_CERVEZA; f < hoy; f = addDias(f, 1)) if (!S.data.cerv.has(f)) sc.add(f);
+  return sc;
+}
 function calcRacha() {
   const hoy = hoyStr();
   const tipos = {};
@@ -892,7 +918,7 @@ function calcRacha() {
   const pas = new Set(Object.keys(S.data.pasos).filter(f => (S.data.pasos[f] || 0) >= 10000));
   const amb = new Set([...ok].filter(f => pas.has(f)));
   const e = rachaDe(ok, hoy);
-  return { ok, tipos, pas, amb, actual: e.actual, mejor: e.mejor, rPas: rachaDe(pas, hoy, 2), rAmb: rachaDe(amb, hoy, 2) };
+  return { ok, tipos, pas, amb, actual: e.actual, mejor: e.mejor, rPas: rachaDe(pas, hoy, 2), rAmb: rachaDe(amb, hoy, 2), rSc: rachaDe(sinCervezaSet(hoy), hoy, 1) };
 }
 // Clase de color del día: verde caminata, morado bici, mitad y mitad si hubo las dos
 function claseDia(tipos, f) {
@@ -915,6 +941,7 @@ function renderHoy() {
   $('rc-ent').textContent = R.actual; $('rc-ent-m').textContent = 'mejor ' + R.mejor;
   $('rc-pas').textContent = R.rPas.actual; $('rc-pas-m').textContent = 'mejor ' + R.rPas.mejor;
   $('rc-amb').textContent = R.rAmb.actual; $('rc-amb-m').textContent = 'mejor ' + R.rAmb.mejor;
+  $('rc-sc').textContent = R.rSc.actual; $('rc-sc-m').textContent = 'mejor ' + R.rSc.mejor;
   const pAyer = S.data.pasos[addDias(hoy, -1)], hechoHoy = R.ok.has(hoy);
   $('hoy-racha-sub').textContent = hechoHoy ? 'Hoy cumplido ✓' : 'Hoy aún no cumplido';
   $('hoy-racha-sub').style.color = hechoHoy ? 'var(--green)' : 'var(--txt3)';
@@ -957,6 +984,10 @@ function pintarPasos() {
   $('hoy-pasos-lbl').textContent = hay ? v.toLocaleString('es-ES') + ' / 10.000' : 'Falta anotar los pasos de ayer';
   $('hoy-pasos-lbl').style.color = hay ? 'var(--txt2)' : 'var(--txt)';
   $('hoy-pasos-lbl').style.fontWeight = hay ? '400' : '600';
+  const tomo = S.data.cerv.has(ayer);
+  $('hoy-cerv-fila').style.display = ayer >= DESDE_CERVEZA ? '' : 'none';
+  $('hc-no').classList.toggle('on', !tomo); $('hc-si').classList.toggle('on', tomo);
+  $('hoy-cerv-lbl').textContent = tomo ? 'Bebí cerveza' : 'Sin cerveza ✓';
 }
 
 // ── Pasos de varios días: se teclean uno a uno y se guardan todos de golpe ──
@@ -976,9 +1007,12 @@ function pasosLotePintar() {
   $('pl-input').value = f in S.pl.borr ? S.pl.borr[f] : (g != null ? g : '');
   $('pl-estado').textContent = f in S.pl.borr ? 'Pendiente de guardar' : (g != null ? 'Ya guardado: ' + g.toLocaleString('es-ES') : 'Sin registrar');
   $('pl-sig').disabled = f >= hoy; $('pl-sig').style.opacity = f >= hoy ? '.35' : '1';
-  const pend = Object.keys(S.pl.borr).sort().reverse();
+  const tomo = f in S.pl.cerv ? S.pl.cerv[f] : S.data.cerv.has(f), ok = f >= DESDE_CERVEZA;
+  $('pl-pill').classList.toggle('off', !ok);
+  $('pl-no').classList.toggle('on', ok && !tomo); $('pl-si').classList.toggle('on', ok && tomo);
+  const pend = [...new Set([...Object.keys(S.pl.borr), ...Object.keys(S.pl.cerv)])].sort().reverse();
   $('pl-pend').innerHTML = pend.length
-    ? `<strong>${pend.length}</strong> día${pend.length > 1 ? 's' : ''} pendiente${pend.length > 1 ? 's' : ''}: ` + pend.map(d => `${parseISO(d).getDate()}/${parseISO(d).getMonth() + 1}: ${S.pl.borr[d].toLocaleString('es-ES')}`).join(' · ')
+    ? `<strong>${pend.length}</strong> día${pend.length > 1 ? 's' : ''} pendiente${pend.length > 1 ? 's' : ''}: ` + pend.map(d => `${parseISO(d).getDate()}/${parseISO(d).getMonth() + 1}: ${[d in S.pl.borr ? S.pl.borr[d].toLocaleString('es-ES') : null, d in S.pl.cerv ? (S.pl.cerv[d] ? '🍺 sí' : '🍺 no') : null].filter(Boolean).join(' ')}`).join(' · ')
     : 'Aún no has anotado ningún día.';
   $('pl-guardar').textContent = pend.length ? `Guardar todo (${pend.length})` : 'Guardar todo';
 }
@@ -989,8 +1023,14 @@ function pasosLoteFechaElegida() {
   S.pl.dia = v; pasosLotePintar();
   $('pl-input').focus(); $('pl-input').select();
 }
+function plCerv(si) {
+  const f = S.pl.dia;
+  if (f < DESDE_CERVEZA) return;
+  if (si === S.data.cerv.has(f)) delete S.pl.cerv[f]; else S.pl.cerv[f] = si;
+  pasosLotePintar();
+}
 function abrirPasosLote() {
-  S.pl = { dia: addDias(hoyStr(), -2), borr: {} };
+  S.pl = { dia: addDias(hoyStr(), -2), borr: {}, cerv: {} };
   pasosLotePintar();
   openModal('modal-pasos');
   $('pl-fecha').onchange = pasosLoteFechaElegida;
@@ -1007,19 +1047,31 @@ function pasosLoteIr(delta) {
 async function guardarPasosLote() {
   if (!pasosLoteGuardarActual()) return;
   const fechas = Object.keys(S.pl.borr).filter(f => f <= hoyStr());
-  if (!fechas.length) { showToast('No hay nada nuevo que guardar', 'ℹ️'); return; }
+  const cervF = Object.keys(S.pl.cerv).filter(f => f <= hoyStr() && f >= DESDE_CERVEZA);
+  if (!fechas.length && !cervF.length) { showToast('No hay nada nuevo que guardar', 'ℹ️'); return; }
   $('pl-guardar').disabled = true; $('pl-guardar').textContent = 'Guardando…';
   try {
     for (let i = 0; i < fechas.length; i += 10)
       await conTiempo(Promise.all(fechas.slice(i, i + 10).map(f => window._fb.save('pasos_dia', f, { fecha: f, pasos: S.pl.borr[f] }))));
+    for (let i = 0; i < cervF.length; i += 10)
+      await conTiempo(Promise.all(cervF.slice(i, i + 10).map(f => S.pl.cerv[f] ? window._fb.save('cerveza_dia', f, { fecha: f, cerveza: true }) : window._fb.del('cerveza_dia', f))));
     closeModal('modal-pasos');
-    showToast(`${fechas.length} día${fechas.length > 1 ? 's' : ''} de pasos guardado${fechas.length > 1 ? 's' : ''}`, '👟');
+    showToast(`Guardado: ${fechas.length} día${fechas.length === 1 ? '' : 's'} de pasos` + (cervF.length ? ` y ${cervF.length} de cerveza` : ''), '👟');
     S.pl = null;
     await refrescar();
   } catch (e) { errorFb(e, 'guardar'); }
   $('pl-guardar').disabled = false; if (S.pl) pasosLotePintar(); else $('pl-guardar').textContent = 'Guardar todo';
 }
 
+async function marcarCervezaAyer(si) {
+  const f = addDias(hoyStr(), -1);
+  if (S.data.cerv.has(f) === si) return;
+  try {
+    await conTiempo(si ? window._fb.save('cerveza_dia', f, { fecha: f, cerveza: true }) : window._fb.del('cerveza_dia', f));
+    showToast(si ? 'Anotado: bebiste cerveza ayer' : 'Ayer sin cerveza', '🍺');
+    await refrescar();
+  } catch (e) { errorFb(e, 'guardar'); }
+}
 async function guardarPasos() {
   const v = parseInt($('hoy-pasos').value);
   const f = addDias(hoyStr(), -1);
@@ -1315,7 +1367,7 @@ function renderHeatmap() {
     for (let d = 0; d < 7; d++) {
       const f = addDias(lun, w * 7 + d), fut = f > hoy;
       const e = R.ok.has(f), pz = R.pas.has(f);
-      c += `<u class="${e && pz ? 'e2' : e ? 'e1' : pz ? 'pp' : ''}${fut ? ' f' : ''}" title="${fmtFecha(f)}"></u>`;
+      c += `<u class="${e && pz ? 'e2' : e ? 'e1' : pz ? 'pp' : ''}${sinCerveza(f) ? ' nb' : ''}${fut ? ' f' : ''}" title="${fmtFecha(f)}"></u>`;
     }
     h += `<div>${c}</div>`;
   }
@@ -1442,7 +1494,8 @@ function datosCopia() {
     })),
     'Peso': [...d.pesos].sort(asc).map(p => ({ 'Fecha': p.fecha, 'Peso (kg)': p.kg })),
     'Composición': [...d.comp].sort(asc).map(c => ({ 'Fecha': c.fecha, '% Grasa': v(c.grasa_pct), '% Músculo': v(c.musculo_pct) })),
-    'Pasos': Object.entries(d.pasos).sort().map(([f, p]) => ({ 'Fecha': f, 'Pasos': p }))
+    'Pasos': Object.entries(d.pasos).sort().map(([f, p]) => ({ 'Fecha': f, 'Pasos': p })),
+    'Cerveza': [...d.cerv].sort().map(f => ({ 'Fecha': f, 'Bebió cerveza': 'Sí' }))
   };
 }
 function descargarCopia() {
@@ -1478,7 +1531,7 @@ function prepararImport(wb) {
   const hoja = n => wb.Sheets[n] ? XLSX.utils.sheet_to_json(wb.Sheets[n], { defval: null }) : [];
   const claveAct = (f, tipo, dur) => `${f}|${tipo}|${Math.round((dur || 0) * 60)}`;
   const existentes = new Set(S.data.acts.map(a => claveAct(a.fecha, a.tipo, a.duracion)));
-  const P = { acts: [], pesos: [], comp: [], pasos: [], saltados: 0, errores: [] };
+  const P = { acts: [], pesos: [], comp: [], pasos: [], cerv: [], saltados: 0, errores: [] };
   hoja('Actividades').forEach((r, i) => {
     const fecha = fechaImport(r['Fecha']), dur = num(r['Duración (min)']);
     const t = String(r['Tipo'] || '').toLowerCase();
@@ -1514,6 +1567,12 @@ function prepararImport(wb) {
     if (S.data.pasos[fecha]) { P.saltados++; return; }
     P.pasos.push({ fecha, pasos });
   });
+  hoja('Cerveza').forEach((r, i) => {
+    const fecha = fechaImport(r['Fecha']);
+    if (!fecha) { P.errores.push(`Cerveza, fila ${i + 2}: fecha no válida`); return; }
+    if (S.data.cerv.has(fecha)) { P.saltados++; return; }
+    P.cerv.push({ fecha, cerveza: true });
+  });
   return P;
 }
 function resumenImport(P) {
@@ -1522,6 +1581,7 @@ function resumenImport(P) {
   if (P.pesos.length) L.push(`⚖️ <strong>${P.pesos.length}</strong> pesos`);
   if (P.comp.length) L.push(`📊 <strong>${P.comp.length}</strong> composiciones`);
   if (P.pasos.length) L.push(`👟 <strong>${P.pasos.length}</strong> días de pasos`);
+  if (P.cerv.length) L.push(`🍺 <strong>${P.cerv.length}</strong> días con cerveza`);
   if (P.saltados) L.push(`⏭️ ${P.saltados} ya existían y se saltan`);
   if (P.acts.length) {
     const f = P.acts.map(x => x.fecha).sort(), ini = f[0], fin = f[f.length - 1];
@@ -1540,7 +1600,7 @@ async function leerImport(input) {
     const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' });
     const P = prepararImport(wb);
     $('imp-resumen').innerHTML = resumenImport(P);
-    if (P.acts.length + P.pesos.length + P.comp.length + P.pasos.length) { S.importPend = P; $('imp-confirmar').style.display = 'block'; }
+    if (P.acts.length + P.pesos.length + P.comp.length + P.pasos.length + P.cerv.length) { S.importPend = P; $('imp-confirmar').style.display = 'block'; }
   } catch (e) { console.error(e); $('imp-resumen').textContent = 'No he podido leer el archivo: ' + e.message; }
   input.value = '';
 }
@@ -1553,7 +1613,8 @@ async function confirmarImport() {
       ...P.acts.map(d => () => window._fb.add('actividades', d)),
       ...P.pesos.map(d => () => window._fb.add('pesos', d)),
       ...P.comp.map(d => () => window._fb.save('composicion', d.fecha, d)),
-      ...P.pasos.map(d => () => window._fb.save('pasos_dia', d.fecha, d))
+      ...P.pasos.map(d => () => window._fb.save('pasos_dia', d.fecha, d)),
+      ...P.cerv.map(d => () => window._fb.save('cerveza_dia', d.fecha, d))
     ];
     for (let i = 0; i < tareas.length; i += 10) await Promise.all(tareas.slice(i, i + 10).map(t => t()));
     S.importPend = null;
@@ -1587,8 +1648,8 @@ function circuloDia(f, ok, hoy, tipo) {
   const estilo = p ? `--p:${deg}deg; --trk:var(--trkc);` : '';
   const dia = parseInt(f.slice(8), 10);
   const txt = tipo === 'hab' ? '✓' : (hecho ? '✓' : dia);
-  const bici = hecho && S._tipos && S._tipos[f] && S._tipos[f].bici;
-  return `<div class="rc ${tipo}${f === hoy ? ' hoy' : ''}${f > hoy ? ' futuro' : ''}" style="${estilo}"${p ? ` title="${p.toLocaleString('es-ES')} pasos"` : ''}><div class="ri${hecho ? ' ok' : ''}">${txt}</div>${bici ? '<i class="bici-dot"></i>' : ''}</div>`;
+  const bici = hecho && S._tipos && S._tipos[f] && S._tipos[f].bici, nb = sinCerveza(f);
+  return `<div class="rc ${tipo}${f === hoy ? ' hoy' : ''}${f > hoy ? ' futuro' : ''}" style="${estilo}"${p ? ` title="${p.toLocaleString('es-ES')} pasos"` : ''}><div class="ri${hecho ? ' ok' : ''}${nb ? ' nb' : ''}">${txt}</div>${bici ? '<i class="bici-dot"></i>' : ''}</div>`;
 }
 function renderCalendario() {
   $('cal-titulo').textContent = `${MESES[S.calM]} ${S.calY}`;
@@ -1598,15 +1659,16 @@ function renderCalendario() {
   const offset = (new Date(S.calY, S.calM, 1).getDay() + 6) % 7;
   const total = new Date(S.calY, S.calM + 1, 0).getDate();
   const hoy = hoyStr();
-  let html = '<div></div>'.repeat(offset), cumplidos = 0, d10 = 0;
+  let html = '<div></div>'.repeat(offset), cumplidos = 0, d10 = 0, sc = 0;
   for (let d = 1; d <= total; d++) {
     const f = `${S.calY}-${pad(S.calM + 1)}-${pad(d)}`;
     if (ok.has(f) && f <= hoy) cumplidos++;
     if (f <= hoy && (S.data.pasos[f] || 0) >= 10000) d10++;
+    if (sinCerveza(f)) sc++;
     html += circuloDia(f, ok, hoy, 'cal');
   }
   $('cal-grid').innerHTML = html;
-  $('cal-mes-sub').textContent = `${cumplidos} ${cumplidos === 1 ? 'día entrenado' : 'días entrenados'} · ${d10} con 10.000+ pasos`;
+  $('cal-mes-sub').textContent = `${cumplidos} ${cumplidos === 1 ? 'día entrenado' : 'días entrenados'} · ${d10} con 10.000+ pasos${sc ? ` · ${sc} sin cerveza` : ''}`;
 }
 
 // ── Pasos: resumen y gráfico ──
@@ -1660,6 +1722,8 @@ function generarResumen() {
   L.push(`DOLOR RODILLA IZQ. (0-10): media ${n(s.dolorRodMedia)} · máximo ${s.dolorRodMax ?? 'sin datos'}`);
   L.push(`DOLOR PIE DCHO. (0-10): media ${n(s.dolorPieMedia)} · máximo ${s.dolorPieMax ?? 'sin datos'}`);
   L.push(`DÍAS ACTIVOS: ${s.diasActivos} de 7`);
+  { let con = 0, tot = 0; for (let f = desde; f < hoy; f = addDias(f, 1)) if (f >= DESDE_CERVEZA) { tot++; if (S.data.cerv.has(f)) con++; }
+    L.push(tot ? `CERVEZA: ${con} día${con === 1 ? '' : 's'} con cerveza de ${tot} registrados (hasta ayer)` : 'CERVEZA: sin registro todavía'); }
   L.push('');
   L.push(`SEMANA ANTERIOR (${desdeAnt} → ${hastaAnt}): caminata ${n(p.kmCam, 1, ' km')} en ${p.cam.length} sesiones · bici ${n(p.kmBici, 1, ' km')} en ${p.bici.length} sesiones · pasos media ${p.pasosMedia ? p.pasosMedia.toLocaleString('es-ES') : 'sin datos'} · dolor rodilla media ${n(p.dolorRodMedia)} · dolor pie media ${n(p.dolorPieMedia)}`);
   L.push('');
