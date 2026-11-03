@@ -130,7 +130,7 @@ nav { position:fixed; bottom:0; left:0; right:0; height:calc(var(--nav-h) + env(
 .prog-fill.green { background:var(--green); }
 .prog-fill.orange { background:var(--orange); }
 
-.tipo-grid { display:grid; grid-template-columns:1fr 1fr; gap:8px; margin:0 16px 12px; }
+.tipo-grid { display:grid; grid-template-columns:1fr 1fr 1fr; gap:8px; margin:0 16px 12px; }
 .tipo-btn { background:var(--bg2); border:1.5px solid var(--border); border-radius:12px; padding:14px 8px; text-align:center; cursor:pointer; transition:all .2s; color:var(--txt2); font-size:13px; }
 .tipo-btn.selected { border-color:var(--ink); background:var(--sel); color:var(--txt); }
 .tipo-btn .ico { font-size:26px; margin-bottom:4px; }
@@ -278,6 +278,31 @@ body { text-align:center; }
 .rc.futuro { opacity:.3; }
 .pas-ring { background:transparent; border:3px solid var(--pas); }
 .ley-ent { background:var(--ent); border-color:var(--ent); }
+/* medio círculo = solo una de las dos sesiones (cardio o fuerza) */
+.ri.half { background:linear-gradient(to top, var(--ink) 50%, var(--bg2) 50%); box-shadow:inset 0 0 0 2px var(--ink); align-items:flex-start; padding-top:3px; color:var(--txt2); font-size:10px; }
+.ri.half.nb { background:linear-gradient(to top, var(--sc) 50%, var(--bg2) 50%); box-shadow:inset 0 0 0 2px var(--sc); }
+.rc.hab .ri.half { color:transparent; }
+.ley-half { background:linear-gradient(to top, var(--ink) 50%, transparent 50%); box-shadow:inset 0 0 0 1.5px var(--ink); }
+/* registro de ayer */
+.chips { display:flex; flex-wrap:wrap; gap:6px; justify-content:center; margin:10px 0; }
+.chip { padding:5px 10px; border-radius:20px; border:1px solid var(--border); font-size:12px; color:var(--txt3); }
+.chip.d { color:var(--txt); border-color:var(--border2); background:var(--bg3); }
+.reg-cnt { font-family:'DM Mono',monospace; font-size:13px; color:var(--txt2); }
+.reg-cnt.ok { color:var(--sc); font-weight:600; }
+.reg-row { display:flex; align-items:center; justify-content:space-between; gap:10px; padding:10px 0; border-bottom:1px solid var(--border); }
+.reg-row .l { text-align:left; font-weight:600; font-size:14px; }
+.reg-row .l small { display:block; font-weight:400; font-size:11px; color:var(--txt2); margin-top:1px; }
+.reg-row .inp { max-width:130px; padding:9px 10px; }
+.reg-bal { background:var(--bg3); border-radius:10px; padding:10px; margin:10px 0 4px; font-size:13px; color:var(--txt2); }
+.reg-sec { font-family:'DM Mono',monospace; font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--txt2); margin:14px 0 2px; text-align:left; }
+/* fuerza semanal */
+.fz-num { font-family:'Syne',sans-serif; font-size:30px; font-weight:700; margin-top:4px; line-height:1.1; }
+.fz-num small { font-family:'DM Sans',sans-serif; font-size:15px; font-weight:400; color:var(--txt2); }
+.seg4 { display:flex; gap:6px; margin:8px 0 6px; }
+.seg4 i { flex:1; height:7px; border-radius:5px; background:var(--bg3); }
+.seg4 i.d { background:var(--ink); }
+.peso-plan { margin-top:12px; padding-top:12px; border-top:1px solid var(--border); font-size:12px; color:var(--txt2); line-height:1.7; }
+.peso-plan b { color:var(--txt); }
 </style>
 </head>
 <body>
@@ -309,21 +334,27 @@ body { text-align:center; }
       <div class="habit-strip hoy-mini" id="hoy-semana"></div>
     </div>
 
-    <div class="card hoy-c">
+    <div class="card hoy-c" id="reg-card">
       <div class="hoy-fila">
-        <div style="text-align:left; white-space:nowrap;"><div style="font-weight:600; font-size:13px;">👟 Pasos de ayer</div><div class="hoy-tiny" id="hoy-pasos-dia"></div></div>
-        <input type="number" inputmode="numeric" class="inp" id="hoy-pasos" placeholder="0" style="padding:8px 10px; font-size:15px; max-width:110px;">
-        <button class="btn btn-primary" style="width:auto; padding:9px 14px; font-size:13px;" onclick="guardarPasos()">Guardar</button>
+        <div style="text-align:left;"><div style="font-weight:600; font-size:14px;">📝 Registro de ayer</div><div class="hoy-tiny" id="reg-dia"></div></div>
+        <div class="reg-cnt" id="reg-cnt">0/4</div>
       </div>
-      <div class="prog-bar" style="margin:10px 0 6px;"><div class="prog-fill" id="hoy-pasos-bar" style="width:0%; background:var(--ink);"></div></div>
-      <div class="hoy-fila">
-        <span class="hoy-tiny" id="hoy-pasos-lbl">—</span>
+      <div class="chips" id="reg-chips"></div>
+      <div class="hoy-tiny" id="reg-bal" style="margin:-2px 0 10px;"></div>
+      <button class="btn btn-primary" id="reg-btn" onclick="abrirRegistro()">Completar registro</button>
+      <button class="btn btn-ghost" id="reg-res" style="margin-top:8px; display:none;" onclick="abrirResumenDia()">📋 Resumen del día para Claude</button>
+      <div class="hoy-fila" style="margin-top:10px;">
         <button class="hoy-link" onclick="abrirPasosLote()">📅 Otro día…</button>
+        <button class="hoy-link" onclick="abrirResumen()">📋 Resumen semanal</button>
       </div>
-      <div class="hoy-fila" id="hoy-cerv-fila" style="margin-top:10px; padding-top:10px; border-top:1px solid var(--line);">
-        <div style="text-align:left;"><div style="font-weight:600; font-size:13px;">🍺 Cerveza de ayer</div><div class="hoy-tiny" id="hoy-cerv-lbl"></div></div>
-        <div class="pill"><button id="hc-no" onclick="marcarCervezaAyer(false)">Sin cerveza</button><button id="hc-si" onclick="marcarCervezaAyer(true)">Bebí</button></div>
-      </div>
+    </div>
+
+    <div class="card hoy-c">
+      <div class="hoy-tiny" style="letter-spacing:.08em; text-transform:uppercase;">💪 Fuerza esta semana</div>
+      <div class="fz-num"><span id="fz-n">0</span><small> de <span id="fz-obj">4</span></small></div>
+      <div class="seg4" id="fz-seg"></div>
+      <div class="hoy-tiny" id="fz-sub"></div>
+      <button class="btn btn-ghost" id="fz-btn" style="margin-top:10px;" onclick="toggleFuerzaHoy()">💪 Marcar fuerza de hoy como hecha</button>
     </div>
 
     <div style="padding:0 16px; margin-bottom:12px;">
@@ -355,7 +386,7 @@ body { text-align:center; }
     <div class="page-header">
       <div>
         <div class="page-title">Actividad</div>
-        <div class="page-sub">Caminata · Bici</div>
+        <div class="page-sub">Caminata · Bici · Fuerza</div>
       </div>
       <button class="btn btn-sm btn-ghost" onclick="abrirHistorial()">Historial</button>
     </div>
@@ -363,6 +394,7 @@ body { text-align:center; }
     <div class="tipo-grid">
       <div class="tipo-btn selected" id="tipo-caminar" onclick="elegirTipo('caminar')"><div class="ico">🚶</div>Caminar</div>
       <div class="tipo-btn" id="tipo-bici" onclick="elegirTipo('bici')"><div class="ico">🚴</div>Bici (Zwift)</div>
+      <div class="tipo-btn" id="tipo-fuerza" onclick="elegirTipo('fuerza')"><div class="ico">💪</div>Fuerza</div>
     </div>
 
     <div class="card">
@@ -370,6 +402,8 @@ body { text-align:center; }
         <label>Fecha del entreno</label>
         <div class="fecha-sel" id="fs-act"></div>
       </div>
+      <div id="act-fz-nota" class="hoy-tiny" style="display:none; margin:-4px 0 14px;">La fuerza solo se marca como hecha: elige el día y guarda.</div>
+      <div id="act-cardio">
       <div class="input-wrap"><label>Duración (horas · minutos · segundos)</label><div class="fecha-sel dur-sel" id="ds-act"></div></div>
       <div class="row2">
         <div class="input-wrap"><label>Distancia (km)</label><input type="number" inputmode="decimal" step="0.01" class="inp" id="act-distancia"></div>
@@ -398,6 +432,7 @@ body { text-align:center; }
         <label>Notas (opcional)</label>
         <input type="text" class="inp" id="act-notas" placeholder="Ruta, sensaciones...">
       </div>
+      </div>
       <button class="btn btn-green" id="act-guardar" onclick="guardarActividad()">Guardar actividad</button>
     </div>
   </div>
@@ -424,6 +459,7 @@ body { text-align:center; }
           <span style="font-size:11px; color:var(--txt3)" id="peso-obj-lbl">Objetivo: —</span>
         </div>
         <div class="stat-sub" id="peso-tend" style="margin-top:12px;"></div>
+        <div class="peso-plan" id="peso-plan"></div>
       </div>
     </div>
 
@@ -461,6 +497,10 @@ body { text-align:center; }
         <div style="flex:1;">
           <label style="font-size:12px; color:var(--txt2); display:block; margin-bottom:6px;">Peso objetivo (kg)</label>
           <input type="number" step="0.1" inputmode="decimal" class="inp" id="peso-objetivo">
+        </div>
+        <div style="flex:1.3;">
+          <label style="font-size:12px; color:var(--txt2); display:block; margin-bottom:6px;">Para el día</label>
+          <input type="date" class="inp fecha-in" id="peso-obj-fecha">
         </div>
         <button class="btn btn-ghost" style="width:auto; padding:12px 20px;" onclick="guardarObjetivoPeso()">Guardar</button>
       </div>
@@ -521,12 +561,13 @@ body { text-align:center; }
       <div id="cal-dias" style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px; margin-bottom:6px;"></div>
       <div id="cal-grid" style="display:grid; grid-template-columns:repeat(7,1fr); gap:4px;"></div>
       <div class="leyenda">
-        <span><i class="ley-ent"></i>Entreno (caminata o bici)</span>
+        <span><i class="ley-ent"></i>Día completo (cardio + fuerza)</span>
+        <span><i class="ley-half"></i>Solo una sesión</span>
         <span><i class="pas-ring"></i>Pasos: el anillo se llena hasta 10.000</span>
         <span><i style="background:var(--bg2); border:2px solid var(--ink); width:7px; height:7px;"></i>Día con bici</span>
         <span><i style="background:var(--sc);"></i>Día sin cerveza</span>
       </div>
-      <div id="cal-nota" style="margin-top:10px; font-size:11px; color:var(--txt3);">El círculo se rellena en verde si registras un entreno. El anillo lila se completa al llegar a 10.000 pasos (a 5.000, medio anillo).</div>
+      <div id="cal-nota" style="margin-top:10px; font-size:11px; color:var(--txt3);">Desde el 9 de noviembre, el círculo se rellena entero si haces cardio (caminata o bici) y fuerza el mismo día, y por la mitad si haces solo una. Antes de esa fecha, cualquier entreno lo rellena entero. El anillo se completa al llegar a 10.000 pasos.</div>
     </div>
 
     <div class="sec-label">Esta semana vs anterior (lunes a domingo)</div>
@@ -564,13 +605,13 @@ body { text-align:center; }
 
     <div class="sec-label">💾 Copia de seguridad</div>
     <div class="card">
-      <div style="font-size:12px; color:var(--txt3); margin-bottom:12px; line-height:1.5;">Descarga todos tus datos en un Excel: actividades, peso, composición y pasos.</div>
+      <div style="font-size:12px; color:var(--txt3); margin-bottom:12px; line-height:1.5;">Descarga todos tus datos en un Excel: actividades, peso, composición, pasos, calorías y cerveza.</div>
       <button class="btn btn-ghost" onclick="descargarCopia()">⬇️ Descargar Excel</button>
     </div>
 
     <div class="sec-label">📥 Importar desde Excel</div>
     <div class="card">
-      <div style="font-size:12px; color:var(--txt2); margin-bottom:12px; line-height:1.5;">Carga de golpe entrenos, peso, composición o pasos desde un Excel con el mismo formato que la copia de seguridad. Primero te muestra qué va a cargar y no duplica lo que ya existe.</div>
+      <div style="font-size:12px; color:var(--txt2); margin-bottom:12px; line-height:1.5;">Carga de golpe entrenos, peso, composición, pasos, calorías o cerveza desde un Excel con el mismo formato que la copia de seguridad. Primero te muestra qué va a cargar y no duplica lo que ya existe.</div>
       <input type="file" id="imp-file" accept=".xlsx,.xls" style="display:none" onchange="leerImport(this)">
       <button class="btn btn-ghost" onclick="$('imp-file').click()">⬆️ Elegir archivo Excel</button>
       <div id="imp-resumen" style="margin-top:12px; font-size:13px; line-height:1.6; color:var(--txt2);"></div>
@@ -609,7 +650,7 @@ body { text-align:center; }
 <div id="modal-pasos" class="modal-overlay hidden">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
-    <div class="modal-title">Pasos y cerveza de varios días</div>
+    <div class="modal-title">Registro de otros días</div>
     <div style="display:flex; align-items:center; justify-content:space-between; gap:8px; margin-bottom:12px;">
       <button class="btn btn-ghost" style="width:56px; padding:12px 0; font-size:20px;" onclick="pasosLoteIr(-1)">‹</button>
       <div style="text-align:center; flex:1;">
@@ -618,13 +659,36 @@ body { text-align:center; }
       </div>
       <button class="btn btn-ghost" style="width:56px; padding:12px 0; font-size:20px;" id="pl-sig" onclick="pasosLoteIr(1)">›</button>
     </div>
-    <div class="input-wrap"><label>Pasos de ese día (Huawei Salud)</label><input type="number" enterkeyhint="next" class="inp" id="pl-input" placeholder="0" style="font-size:22px;"></div>
+    <div class="input-wrap"><label>Pasos de ese día (Huawei Salud)</label><input type="number" inputmode="numeric" enterkeyhint="next" class="inp" id="pl-input" placeholder="0" style="font-size:22px;"></div>
+    <div class="row2">
+      <div class="input-wrap"><label>🔥 Kcal gastadas</label><input type="number" inputmode="numeric" enterkeyhint="next" class="inp" id="pl-kg" placeholder="—"></div>
+      <div class="input-wrap"><label>🍽️ Kcal consumidas</label><input type="number" inputmode="numeric" enterkeyhint="next" class="inp" id="pl-kc" placeholder="—"></div>
+    </div>
     <div class="hoy-fila" id="pl-cerv-row" style="margin:0 0 12px;"><div style="font-weight:600; font-size:13px;">🍺 Cerveza ese día</div><div class="pill" id="pl-pill"><button id="pl-no" onclick="plCerv(false)">Sin cerveza</button><button id="pl-si" onclick="plCerv(true)">Bebí</button></div></div>
-    <div style="font-size:12px; color:var(--txt2); margin:-4px 0 12px; text-align:center;">Toca la fecha para elegir otro día, o usa ‹ › (Intro también va al día anterior). Nada se guarda hasta que pulses "Guardar todo".</div>
+    <div style="font-size:12px; color:var(--txt2); margin:-4px 0 12px; text-align:center;">Toca la fecha para elegir otro día, o usa ‹ › (Intro pasa al siguiente dato y, en el último, al día anterior). Nada se guarda hasta que pulses "Guardar todo".</div>
     <div id="pl-pend" style="font-size:12px; color:var(--txt2); line-height:1.7; text-align:center; margin-bottom:12px;"></div>
     <div style="display:flex; gap:10px;">
       <button class="btn btn-ghost" onclick="closeModal('modal-pasos')">Cancelar</button>
       <button class="btn btn-primary" id="pl-guardar" onclick="guardarPasosLote()">Guardar todo</button>
+    </div>
+  </div>
+</div>
+
+<div id="modal-registro" class="modal-overlay hidden">
+  <div class="modal-sheet">
+    <div class="modal-handle"></div>
+    <div class="modal-title" id="rg-titulo">Ayer</div>
+    <div class="reg-sec">Datos de ayer</div>
+    <div class="reg-row"><div class="l">👟 Pasos</div><input type="number" inputmode="numeric" enterkeyhint="next" class="inp" id="rg-pasos" placeholder="—"></div>
+    <div class="reg-row"><div class="l">🔥 Kcal gastadas<small>Total del día (reloj)</small></div><input type="number" inputmode="numeric" enterkeyhint="next" class="inp" id="rg-kg" placeholder="—"></div>
+    <div class="reg-row"><div class="l">🍽️ Kcal consumidas<small>Lo que comiste</small></div><input type="number" inputmode="numeric" enterkeyhint="next" class="inp" id="rg-kc" placeholder="—"></div>
+    <div class="reg-bal" id="rg-bal"></div>
+    <div class="reg-row" id="rg-cerv-row"><div class="l">🍺 Cerveza</div><div class="pill"><button id="rg-no" onclick="rgCerv(false)">Sin cerveza</button><button id="rg-si" onclick="rgCerv(true)">Bebí</button></div></div>
+    <div class="reg-sec">Hoy</div>
+    <div class="reg-row" style="border-bottom:none;"><div class="l">⚖️ Peso de hoy<small id="rg-peso-ult">Opcional</small></div><input type="number" step="0.1" inputmode="decimal" enterkeyhint="done" class="inp" id="rg-peso" placeholder="kg"></div>
+    <div style="display:flex; gap:10px; margin-top:14px;">
+      <button class="btn btn-ghost" onclick="closeModal('modal-registro')">Cancelar</button>
+      <button class="btn btn-primary" id="rg-guardar" onclick="guardarRegistro()">Guardar todo</button>
     </div>
   </div>
 </div>
@@ -635,6 +699,7 @@ body { text-align:center; }
     <div class="modal-title">Editar actividad</div>
     <div class="input-wrap"><label>Tipo</label><select class="inp" id="ed-tipo" onchange="edTipoCambia()"></select></div>
     <div class="input-wrap"><label>Fecha</label><div class="fecha-sel" id="fs-ed"></div></div>
+    <div id="ed-cardio">
     <div class="row2">
       <div class="input-wrap"><label>Duración (horas · minutos · segundos)</label><div class="fecha-sel dur-sel" id="ds-ed"></div></div>
       <div class="input-wrap"><label>Distancia (km)</label><input type="number" inputmode="decimal" step="0.01" class="inp" id="ed-distancia"></div>
@@ -654,6 +719,7 @@ body { text-align:center; }
       <div class="input-wrap"><label>Dolor pie dcho. (0-10)</label><select class="inp" id="ed-dolor-pie"></select></div>
     </div>
     <div class="input-wrap"><label>Notas</label><input type="text" class="inp" id="ed-notas"></div>
+    </div>
     <div style="display:flex; gap:10px; margin-top:6px;">
       <button class="btn btn-ghost" onclick="closeModal('modal-editar')">Cancelar</button>
       <button class="btn btn-primary" id="ed-guardar" onclick="guardarEdicion()">Guardar cambios</button>
@@ -665,8 +731,8 @@ body { text-align:center; }
 <div id="modal-resumen" class="modal-overlay hidden">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
-    <div class="modal-title">Resumen semanal</div>
-    <div style="color:var(--txt2); font-size:13px; margin-bottom:12px;">Cópialo y pégalo en el proyecto "Entrenador Personal" de Claude para que analice tu semana.</div>
+    <div class="modal-title" id="resumen-titulo">Resumen semanal</div>
+    <div style="color:var(--txt2); font-size:13px; margin-bottom:12px;" id="resumen-ayuda">Cópialo y pégalo en el proyecto "Entrenador Personal" de Claude para que analice tu semana.</div>
     <textarea class="inp" id="resumen-texto" rows="14" readonly></textarea>
     <div style="display:flex; gap:10px; margin-top:14px;">
       <button class="btn btn-ghost" onclick="closeModal('modal-resumen')">Cerrar</button>
@@ -752,14 +818,23 @@ function fmtDur(min) {
 // ════════════════════════════════════════
 // ESTADO Y CARGA DE DATOS
 // ════════════════════════════════════════
+// Objetivo de peso por defecto (acordado el 2/11/2026): 70 kg para el 1/6/2027; el plan arranca con el primer pesaje desde el 2/11/2026
+const OBJ_PESO_DEF = 70, OBJ_FECHA_DEF = '2027-06-01', PLAN_DESDE = '2026-11-02';
+// Fuerza: meta semanal y fecha desde la que el calendario distingue día completo (cardio + fuerza) de medio día
+const OBJ_FUERZA = 4, DESDE_FUERZA = '2026-11-09';
+// Números con punto de miles también en cifras de 4 dígitos (2.480)
+const fmtN = n => (n < 0 ? '−' : '') + String(Math.round(Math.abs(n))).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+const fmtKg = n => r1(n).toLocaleString('es-ES', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
+const fmtKg2 = n => (Math.round(n * 100) / 100).toLocaleString('es-ES', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+const fmtFechaAnio = s => parseISO(s).toLocaleDateString('es-ES', { day:'numeric', month:'long', year:'numeric' });
 const S = { tipo: 'caminar', data: null, charts: {}, objKm: 75, objPeso: null, calY: new Date().getFullYear(), calM: new Date().getMonth(), pantalla: 'hoy' };
 
 async function cargarTodo() {
   S.errLectura = null;
   const g = (col, ord) => window._fb.getAll(col, ord).catch(e => { console.warn('No se pudo leer', col, e); S.errLectura = S.errLectura || (e?.code || e?.message || 'error'); return []; });
-  const [actNuevas, cardiosViejos, pesos, comp, pasosDia, checkins, cfg, cervDia] = await Promise.all([
+  const [actNuevas, cardiosViejos, pesos, comp, pasosDia, checkins, cfg, cervDia, kcalDia] = await Promise.all([
     g('actividades', '_ts'), g('cardios', '_ts'), g('pesos', '_ts'), g('composicion', '_ts'),
-    g('pasos_dia', '_ts'), g('checkins', '_ts'), g('config', null), g('cerveza_dia', null)
+    g('pasos_dia', '_ts'), g('checkins', '_ts'), g('config', null), g('cerveza_dia', null), g('kcal_dia', null)
   ]);
 
   // Actividades: las nuevas + el cardio antiguo (se conserva el historial)
@@ -778,10 +853,16 @@ async function cargarTodo() {
 
   const cfgPeso = cfg.find(c => c.id === 'peso_objetivo');
   const cfgKm = cfg.find(c => c.id === 'objetivo_km_semana');
-  S.objPeso = cfgPeso?.valor ?? null;
+  const cfgFecha = cfg.find(c => c.id === 'peso_objetivo_fecha');
+  // El objetivo con fecha sustituye al antiguo objetivo sin fecha (80 kg, ya cumplido): hasta que guardes uno nuevo, vale 70 kg para el 1/6/2027
+  S.objPeso = cfgFecha ? (cfgPeso?.valor ?? OBJ_PESO_DEF) : OBJ_PESO_DEF;
+  S.objFecha = cfgFecha?.valor || OBJ_FECHA_DEF;
   S.objKm = cfgKm?.valor ?? 75;
 
-  S.data = { acts, pasos, pesos: pesosOrd, comp: compOrd, cerv: new Set(cervDia.filter(c => c.fecha && c.cerveza !== false).map(c => c.fecha)) };
+  const kcal = {};
+  kcalDia.forEach(k => { if (k.fecha) kcal[k.fecha] = { g: k.gastadas ?? null, c: k.consumidas ?? null }; });
+
+  S.data = { acts, pasos, pesos: pesosOrd, comp: compOrd, kcal, cerv: new Set(cervDia.filter(c => c.fecha && c.cerveza !== false).map(c => c.fecha)) };
 }
 
 async function refrescar() {
@@ -799,23 +880,31 @@ function statsRango(desde, hasta) {
   const acts = actsEntre(desde, hasta);
   const cam = acts.filter(a => a.tipo === 'caminar');
   const bici = acts.filter(a => a.tipo === 'bici');
+  const fuerza = acts.filter(a => a.tipo === 'fuerza'), cardio = acts.filter(a => a.tipo !== 'fuerza');
   const suma = (arr, k) => arr.reduce((t, a) => t + (num(a[k]) || 0), 0);
   const dias = new Set(acts.map(a => a.fecha));
-  let pasosTot = 0, pasosDias = 0, dias10k = 0;
+  let pasosTot = 0, pasosDias = 0, dias10k = 0, kgT = 0, kgN = 0, kcT = 0, kcN = 0, balT = 0, balN = 0;
   for (let f = desde; f <= hasta; f = addDias(f, 1)) {
     const p = S.data.pasos[f];
     if (p) { pasosTot += p; pasosDias++; if (p >= 10000) dias10k++; }
+    const k = S.data.kcal[f];
+    if (k) {
+      if (k.g != null) { kgT += k.g; kgN++; }
+      if (k.c != null) { kcT += k.c; kcN++; }
+      if (k.g != null && k.c != null) { balT += k.g - k.c; balN++; }
+    }
   }
   const dolorRod = acts.map(a => num(a.dolor_rodilla)).filter(v => v !== null);
   const dolorPie = acts.map(a => num(a.dolor_pie)).filter(v => v !== null);
   const vatios = bici.map(a => num(a.vatios)).filter(v => v);
   const fcCam = cam.map(a => num(a.fc_media)).filter(v => v);
   return {
-    acts, cam, bici,
+    acts, cam, bici, fuerza, cardio, diasFuerza: new Set(fuerza.map(a => a.fecha)).size,
+    kgMedia: kgN ? kgT / kgN : null, kcMedia: kcN ? kcT / kcN : null, balMedia: balN ? balT / balN : null, diasKcal: balN,
     kmCam: suma(cam, 'distancia'), kmBici: suma(bici, 'distancia'),
     minCam: suma(cam, 'duracion'), minBici: suma(bici, 'duracion'), minTot: suma(acts, 'duracion'),
     kcal: suma(acts, 'calorias'),
-    diasActivos: dias.size, sesiones: acts.length,
+    diasActivos: dias.size, sesiones: cardio.length,
     pasosTot, pasosDias, dias10k, pasosMedia: pasosDias ? Math.round(pasosTot / pasosDias) : null,
     dolorRodMedia: media(dolorRod), dolorRodMax: dolorRod.length ? Math.max(...dolorRod) : null,
     dolorPieMedia: media(dolorPie), dolorPieMax: dolorPie.length ? Math.max(...dolorPie) : null,
@@ -856,6 +945,11 @@ function renderPantalla(p) {
 // ACTIVIDADES: ítem de lista
 // ════════════════════════════════════════
 function itemActividad(a, conBorrar) {
+  const btns = conBorrar ? `<div class="act-btns">
+      <button class="del-btn" onclick="abrirEditar('${a._col}','${a.id}')" title="Editar">✏️</button>
+      <button class="del-btn" onclick="borrarActividad('${a._col}','${a.id}')" title="Borrar">🗑️</button>
+    </div>` : '';
+  if (a.tipo === 'fuerza') return `<div class="act-row"><div class="act-ico">💪</div><div class="act-main"><div class="act-l1">Fuerza <em>· hecha</em></div><div class="act-l2">${fmtFecha(a.fecha)}</div></div>${btns}</div>`;
   const esBici = a.tipo === 'bici';
   const icono = esBici ? '🚴' : a.tipo === 'correr' ? '🏃' : '🚶';
   const titulo = esBici ? (a.zwift ? 'Bici · ' + esc(a.zwift) : 'Bici') : a.tipo === 'correr' ? 'Correr' : 'Caminata';
@@ -910,8 +1004,8 @@ function calcRacha() {
   const hoy = hoyStr();
   const tipos = {};
   S.data.acts.forEach(a => {
-    const t = (tipos[a.fecha] ||= { cam: false, bici: false });
-    if (a.tipo === 'bici') t.bici = true; else t.cam = true;
+    const t = (tipos[a.fecha] ||= { cam: false, bici: false, fz: false });
+    if (a.tipo === 'fuerza') t.fz = true; else if (a.tipo === 'bici') t.bici = true; else t.cam = true;
   });
   S._tipos = tipos;
   const ok = new Set(Object.keys(tipos));
@@ -919,6 +1013,14 @@ function calcRacha() {
   const amb = new Set([...ok].filter(f => pas.has(f)));
   const e = rachaDe(ok, hoy);
   return { ok, tipos, pas, amb, actual: e.actual, mejor: e.mejor, rPas: rachaDe(pas, hoy, 2), rAmb: rachaDe(amb, hoy, 2), rSc: rachaDe(sinCervezaSet(hoy), hoy, 1) };
+}
+// Nivel del día: 2 = completo (cardio + fuerza), 1 = solo una de las dos, 0 = nada.
+// Antes de DESDE_FUERZA no se hacía fuerza: cualquier entreno cuenta como día completo (el historial no cambia).
+function nivelDia(f) {
+  const t = S._tipos && S._tipos[f];
+  if (!t) return 0;
+  if (f < DESDE_FUERZA) return 2;
+  return (t.cam || t.bici) && t.fz ? 2 : 1;
 }
 // Clase de color del día: verde caminata, morado bici, mitad y mitad si hubo las dos
 function claseDia(tipos, f) {
@@ -953,7 +1055,8 @@ function renderHoy() {
     return `<div><div class="habit-day">${l}</div>${circuloDia(f, R.ok, hoy, 'hab')}</div>`;
   }).join('');
 
-  pintarPasos(true);
+  pintarRegistro();
+  pintarFuerza();
 
   const lunes = lunesDe(hoy);
   const st = statsRango(lunes, addDias(lunes, 6));
@@ -975,29 +1078,127 @@ function renderHoy() {
   $('hoy-recientes').innerHTML = recientes.length ? recientes.map(a => itemActividad(a, true)).join('') : '<div class="empty">Sin actividades</div>';
 }
 
-// Pasos del día elegido en el selector (hoy por defecto)
-function pintarPasos() {
-  const ayer = addDias(hoyStr(), -1), v = S.data.pasos[ayer] || 0, hay = ayer in S.data.pasos;
-  $('hoy-pasos-dia').textContent = fmtFechaLarga(ayer);
-  $('hoy-pasos').value = hay ? v : '';
-  $('hoy-pasos-bar').style.width = Math.min(100, v / 100) + '%';
-  $('hoy-pasos-lbl').textContent = hay ? v.toLocaleString('es-ES') + ' / 10.000' : 'Falta anotar los pasos de ayer';
-  $('hoy-pasos-lbl').style.color = hay ? 'var(--txt2)' : 'var(--txt)';
-  $('hoy-pasos-lbl').style.fontWeight = hay ? '400' : '600';
-  const tomo = S.data.cerv.has(ayer);
-  $('hoy-cerv-fila').style.display = ayer >= DESDE_CERVEZA ? '' : 'none';
-  $('hc-no').classList.toggle('on', !tomo); $('hc-si').classList.toggle('on', tomo);
-  $('hoy-cerv-lbl').textContent = tomo ? 'Bebí cerveza' : 'Sin cerveza ✓';
+// ── Registro de ayer: pasos, calorías y cerveza de ayer + peso de hoy ──
+function txtBalance(g, c) { // gastadas − consumidas: positivo = déficit
+  if (g == null || c == null) return null;
+  const b = g - c;
+  return b > 0 ? `Déficit de ${fmtN(b)} kcal` : b < 0 ? `Exceso de ${fmtN(-b)} kcal` : 'Balance 0 kcal';
+}
+function estadoDia(f) { // datos del día f (el peso es el del día siguiente: te pesas por la mañana)
+  const k = S.data.kcal[f] || {}, pz = S.data.pesos.find(x => x.fecha === addDias(f, 1));
+  return { pasos: S.data.pasos[f] ?? null, g: k.g ?? null, c: k.c ?? null, cerv: S.data.cerv.has(f), peso: pz ? pz.kg : null };
+}
+function registroCompleto(e) { return e.pasos != null && e.g != null && e.c != null; } // la cerveza siempre tiene valor; el peso es opcional
+function pintarRegistro() {
+  const ayer = addDias(hoyStr(), -1), e = estadoDia(ayer);
+  $('reg-dia').textContent = fmtFechaLarga(ayer);
+  const hechos = [e.pasos != null, e.g != null, e.c != null, true].filter(Boolean).length, completo = hechos === 4;
+  $('reg-cnt').textContent = completo ? '4/4 ✓' : hechos + '/4';
+  $('reg-cnt').classList.toggle('ok', completo);
+  const chip = (ok, txt) => `<span class="chip${ok ? ' d' : ''}">${ok ? '' : '○ '}${txt}</span>`;
+  $('reg-chips').innerHTML = [
+    chip(e.pasos != null, e.pasos != null ? '👟 ' + fmtN(e.pasos) : 'Pasos'),
+    chip(e.g != null, e.g != null ? '🔥 ' + fmtN(e.g) + ' kcal' : 'Kcal gastadas'),
+    chip(e.c != null, e.c != null ? '🍽️ ' + fmtN(e.c) + ' kcal' : 'Kcal consumidas'),
+    chip(true, e.cerv ? '🍺 Bebí' : '🍺 Sin cerveza'),
+    chip(e.peso != null, e.peso != null ? '⚖️ ' + fmtKg(e.peso) + ' kg hoy' : 'Peso hoy (opcional)')
+  ].join('');
+  const bal = txtBalance(e.g, e.c);
+  $('reg-bal').textContent = bal || ''; $('reg-bal').style.display = bal ? '' : 'none';
+  $('reg-btn').textContent = completo ? 'Editar registro' : 'Completar registro';
+  $('reg-btn').className = 'btn ' + (completo ? 'btn-ghost' : 'btn-primary');
+  $('reg-res').style.display = completo ? '' : 'none';
+}
+function abrirRegistro() {
+  const hoy = hoyStr(), ayer = addDias(hoy, -1), e = estadoDia(ayer), v = x => (x == null ? '' : x);
+  S.rg = { dia: ayer, cerv: e.cerv };
+  $('rg-titulo').textContent = 'Ayer · ' + fmtFechaLarga(ayer);
+  $('rg-pasos').value = v(e.pasos); $('rg-kg').value = v(e.g); $('rg-kc').value = v(e.c); $('rg-peso').value = v(e.peso);
+  $('rg-cerv-row').style.display = ayer >= DESDE_CERVEZA ? '' : 'none';
+  const ult = S.data.pesos.find(p => p.fecha < hoy);
+  $('rg-peso-ult').textContent = ult ? `Opcional · último: ${fmtKg(ult.kg)} kg (${fmtFecha(ult.fecha)})` : 'Opcional';
+  rgPintar();
+  openModal('modal-registro');
+  setTimeout(() => { const id = ['rg-pasos', 'rg-kg', 'rg-kc'].find(x => !$(x).value); if (id) $(id).focus(); }, 50);
+}
+function rgPintar() {
+  $('rg-no').classList.toggle('on', !S.rg.cerv); $('rg-si').classList.toggle('on', S.rg.cerv);
+  const b = txtBalance(num($('rg-kg').value), num($('rg-kc').value));
+  $('rg-bal').textContent = 'Balance del día: ' + (b || 'rellena las dos calorías');
+}
+function rgCerv(si) { S.rg.cerv = si; rgPintar(); }
+async function guardarRegistro() {
+  const f = S.rg.dia, hoy = hoyStr(), e = estadoDia(f);
+  const leer = (id, min, max) => { const t = $(id).value.trim().replace(',', '.'); if (t === '') return null; const n = parseFloat(t); return isNaN(n) || n < min || n > max ? NaN : n; };
+  const p = leer('rg-pasos', 0, 100000), g = leer('rg-kg', 0, 10000), c = leer('rg-kc', 0, 10000), kg = leer('rg-peso', 30, 300);
+  if (Number.isNaN(p)) return showToast('Pasos no válidos (0 a 100.000)', '⚠️');
+  if (Number.isNaN(g) || Number.isNaN(c)) return showToast('Calorías no válidas (0 a 10.000)', '⚠️');
+  if (Number.isNaN(kg)) return showToast('Peso no válido', '⚠️');
+  const T = [];
+  if (p != null && Math.round(p) !== e.pasos) T.push(() => window._fb.save('pasos_dia', f, { fecha: f, pasos: Math.round(p) }));
+  if (p == null && e.pasos != null) T.push(() => window._fb.del('pasos_dia', f));
+  const ng = g == null ? null : Math.round(g), nc = c == null ? null : Math.round(c);
+  if (ng !== e.g || nc !== e.c) {
+    if (ng == null && nc == null) T.push(() => window._fb.del('kcal_dia', f));
+    else { const d = { fecha: f }; if (ng != null) d.gastadas = ng; if (nc != null) d.consumidas = nc; T.push(() => window._fb.save('kcal_dia', f, d)); }
+  }
+  if (f >= DESDE_CERVEZA && S.rg.cerv !== e.cerv) T.push(() => S.rg.cerv ? window._fb.save('cerveza_dia', f, { fecha: f, cerveza: true }) : window._fb.del('cerveza_dia', f));
+  if (kg != null && r1(kg) !== e.peso) {
+    const ex = S.data.pesos.find(x => x.fecha === hoy), d = { fecha: hoy, kg: r1(kg), fuente: 'huawei' }; // un único peso por día
+    T.push(() => ex ? window._fb.save('pesos', ex.id, d) : window._fb.add('pesos', d));
+  }
+  if (!T.length) { closeModal('modal-registro'); showToast('Sin cambios', 'ℹ️'); return; }
+  $('rg-guardar').disabled = true; $('rg-guardar').textContent = 'Guardando…';
+  try {
+    await conTiempo(Promise.all(T.map(t => t())));
+    closeModal('modal-registro');
+    showToast('Registro guardado', '📝');
+    await refrescar();
+  } catch (err) { errorFb(err, 'guardar'); }
+  $('rg-guardar').disabled = false; $('rg-guardar').textContent = 'Guardar todo';
+}
+
+// ── Fuerza: meta semanal (lunes a domingo), sin día fijo ──
+function fuerzaDe(f) { return S.data.acts.find(a => a.tipo === 'fuerza' && a.fecha === f); }
+function fuerzaSemana(f) { const l = lunesDe(f), d = addDias(l, 6); return new Set(S.data.acts.filter(a => a.tipo === 'fuerza' && a.fecha >= l && a.fecha <= d).map(a => a.fecha)).size; }
+function pintarFuerza() {
+  const hoy = hoyStr(), dom = addDias(lunesDe(hoy), 6), n = fuerzaSemana(hoy);
+  $('fz-n').textContent = n; $('fz-obj').textContent = OBJ_FUERZA;
+  $('fz-seg').innerHTML = Array.from({ length: OBJ_FUERZA }, (_, i) => `<i${i < n ? ' class="d"' : ''}></i>`).join('');
+  let quedan = 0; for (let f = hoy; f <= dom; f = addDias(f, 1)) quedan++;
+  const falta = Math.max(0, OBJ_FUERZA - n);
+  $('fz-sub').textContent = falta === 0 ? 'Objetivo semanal cumplido 🎉' : `Faltan ${falta} · quedan ${quedan} día${quedan === 1 ? '' : 's'} de semana contando hoy`;
+  const h = fuerzaDe(hoy);
+  $('fz-btn').textContent = h ? '✓ Fuerza de hoy hecha · toca para desmarcar' : '💪 Marcar fuerza de hoy como hecha';
+}
+async function toggleFuerzaHoy() {
+  const h = fuerzaDe(hoyStr());
+  if (h && !confirm('¿Desmarcar la fuerza de hoy?')) return;
+  $('fz-btn').disabled = true;
+  try {
+    await conTiempo(h ? window._fb.del(h._col, h.id) : window._fb.add('actividades', { fecha: hoyStr(), tipo: 'fuerza' }));
+    showToast(h ? 'Fuerza de hoy desmarcada' : 'Fuerza de hoy hecha', '💪');
+    await refrescar();
+  } catch (e) { errorFb(e, 'guardar'); }
+  $('fz-btn').disabled = false;
 }
 
 // ── Pasos de varios días: se teclean uno a uno y se guardan todos de golpe ──
 function pasosLoteGuardarActual() {
   const f = S.pl.dia, v = $('pl-input').value.trim();
   const guardado = S.data.pasos[f];
-  if (v === '') { delete S.pl.borr[f]; return true; }
-  const n = parseInt(v);
-  if (isNaN(n) || n < 0 || n > 100000) { showToast('Pasos no válidos (0 a 100.000)', '⚠️'); return false; }
-  if (n === guardado) delete S.pl.borr[f]; else S.pl.borr[f] = n;
+  if (v === '') delete S.pl.borr[f];
+  else {
+    const n = parseInt(v);
+    if (isNaN(n) || n < 0 || n > 100000) { showToast('Pasos no válidos (0 a 100.000)', '⚠️'); return false; }
+    if (n === guardado) delete S.pl.borr[f]; else S.pl.borr[f] = n;
+  }
+  // Calorías: un campo vacío deja ese dato como estaba
+  const lee = id => { const t = $(id).value.trim(); if (t === '') return null; const n = parseInt(t); return isNaN(n) || n < 0 || n > 10000 ? NaN : n; };
+  const g = lee('pl-kg'), c = lee('pl-kc');
+  if (Number.isNaN(g) || Number.isNaN(c)) { showToast('Calorías no válidas (0 a 10.000)', '⚠️'); return false; }
+  const k = S.data.kcal[f] || {}, ng = g ?? k.g ?? null, nc = c ?? k.c ?? null;
+  if (ng === (k.g ?? null) && nc === (k.c ?? null)) delete S.pl.kc[f]; else S.pl.kc[f] = { g: ng, c: nc };
   return true;
 }
 function pasosLotePintar() {
@@ -1005,14 +1206,16 @@ function pasosLotePintar() {
   $('pl-fecha').value = f; $('pl-fecha').max = hoy;
   const g = S.data.pasos[f];
   $('pl-input').value = f in S.pl.borr ? S.pl.borr[f] : (g != null ? g : '');
-  $('pl-estado').textContent = f in S.pl.borr ? 'Pendiente de guardar' : (g != null ? 'Ya guardado: ' + g.toLocaleString('es-ES') : 'Sin registrar');
+  const kp = S.pl.kc[f] || S.data.kcal[f] || {};
+  $('pl-kg').value = kp.g ?? ''; $('pl-kc').value = kp.c ?? '';
+  $('pl-estado').textContent = (f in S.pl.borr || f in S.pl.kc) ? 'Pendiente de guardar' : (g != null ? 'Ya guardado: ' + fmtN(g) + ' pasos' : 'Sin registrar');
   $('pl-sig').disabled = f >= hoy; $('pl-sig').style.opacity = f >= hoy ? '.35' : '1';
   const tomo = f in S.pl.cerv ? S.pl.cerv[f] : S.data.cerv.has(f), ok = f >= DESDE_CERVEZA;
   $('pl-pill').classList.toggle('off', !ok);
   $('pl-no').classList.toggle('on', ok && !tomo); $('pl-si').classList.toggle('on', ok && tomo);
-  const pend = [...new Set([...Object.keys(S.pl.borr), ...Object.keys(S.pl.cerv)])].sort().reverse();
+  const pend = [...new Set([...Object.keys(S.pl.borr), ...Object.keys(S.pl.cerv), ...Object.keys(S.pl.kc)])].sort().reverse();
   $('pl-pend').innerHTML = pend.length
-    ? `<strong>${pend.length}</strong> día${pend.length > 1 ? 's' : ''} pendiente${pend.length > 1 ? 's' : ''}: ` + pend.map(d => `${parseISO(d).getDate()}/${parseISO(d).getMonth() + 1}: ${[d in S.pl.borr ? S.pl.borr[d].toLocaleString('es-ES') : null, d in S.pl.cerv ? (S.pl.cerv[d] ? '🍺 sí' : '🍺 no') : null].filter(Boolean).join(' ')}`).join(' · ')
+    ? `<strong>${pend.length}</strong> día${pend.length > 1 ? 's' : ''} pendiente${pend.length > 1 ? 's' : ''}: ` + pend.map(d => `${parseISO(d).getDate()}/${parseISO(d).getMonth() + 1}: ${[d in S.pl.borr ? fmtN(S.pl.borr[d]) : null, d in S.pl.kc ? '🔥' + (S.pl.kc[d].g != null ? fmtN(S.pl.kc[d].g) : '—') + '/' + (S.pl.kc[d].c != null ? fmtN(S.pl.kc[d].c) : '—') : null, d in S.pl.cerv ? (S.pl.cerv[d] ? '🍺 sí' : '🍺 no') : null].filter(Boolean).join(' ')}`).join(' · ')
     : 'Aún no has anotado ningún día.';
   $('pl-guardar').textContent = pend.length ? `Guardar todo (${pend.length})` : 'Guardar todo';
 }
@@ -1030,7 +1233,7 @@ function plCerv(si) {
   pasosLotePintar();
 }
 function abrirPasosLote() {
-  S.pl = { dia: addDias(hoyStr(), -2), borr: {}, cerv: {} };
+  S.pl = { dia: addDias(hoyStr(), -2), borr: {}, cerv: {}, kc: {} };
   pasosLotePintar();
   openModal('modal-pasos');
   $('pl-fecha').onchange = pasosLoteFechaElegida;
@@ -1048,39 +1251,23 @@ async function guardarPasosLote() {
   if (!pasosLoteGuardarActual()) return;
   const fechas = Object.keys(S.pl.borr).filter(f => f <= hoyStr());
   const cervF = Object.keys(S.pl.cerv).filter(f => f <= hoyStr() && f >= DESDE_CERVEZA);
-  if (!fechas.length && !cervF.length) { showToast('No hay nada nuevo que guardar', 'ℹ️'); return; }
+  const kcF = Object.keys(S.pl.kc).filter(f => f <= hoyStr());
+  if (!fechas.length && !cervF.length && !kcF.length) { showToast('No hay nada nuevo que guardar', 'ℹ️'); return; }
   $('pl-guardar').disabled = true; $('pl-guardar').textContent = 'Guardando…';
   try {
     for (let i = 0; i < fechas.length; i += 10)
       await conTiempo(Promise.all(fechas.slice(i, i + 10).map(f => window._fb.save('pasos_dia', f, { fecha: f, pasos: S.pl.borr[f] }))));
     for (let i = 0; i < cervF.length; i += 10)
       await conTiempo(Promise.all(cervF.slice(i, i + 10).map(f => S.pl.cerv[f] ? window._fb.save('cerveza_dia', f, { fecha: f, cerveza: true }) : window._fb.del('cerveza_dia', f))));
+    for (let i = 0; i < kcF.length; i += 10)
+      await conTiempo(Promise.all(kcF.slice(i, i + 10).map(f => { const k = S.pl.kc[f], d = { fecha: f }; if (k.g != null) d.gastadas = k.g; if (k.c != null) d.consumidas = k.c; return window._fb.save('kcal_dia', f, d); })));
     closeModal('modal-pasos');
-    showToast(`Guardado: ${fechas.length} día${fechas.length === 1 ? '' : 's'} de pasos` + (cervF.length ? ` y ${cervF.length} de cerveza` : ''), '👟');
+    const nd = new Set([...fechas, ...cervF, ...kcF]).size;
+    showToast(`Guardado${nd === 1 ? '' : 's'} ${nd} día${nd === 1 ? '' : 's'}`, '📝');
     S.pl = null;
     await refrescar();
   } catch (e) { errorFb(e, 'guardar'); }
   $('pl-guardar').disabled = false; if (S.pl) pasosLotePintar(); else $('pl-guardar').textContent = 'Guardar todo';
-}
-
-async function marcarCervezaAyer(si) {
-  const f = addDias(hoyStr(), -1);
-  if (S.data.cerv.has(f) === si) return;
-  try {
-    await conTiempo(si ? window._fb.save('cerveza_dia', f, { fecha: f, cerveza: true }) : window._fb.del('cerveza_dia', f));
-    showToast(si ? 'Anotado: bebiste cerveza ayer' : 'Ayer sin cerveza', '🍺');
-    await refrescar();
-  } catch (e) { errorFb(e, 'guardar'); }
-}
-async function guardarPasos() {
-  const v = parseInt($('hoy-pasos').value);
-  const f = addDias(hoyStr(), -1);
-  if (isNaN(v) || v < 0 || v > 100000) { showToast('Introduce un número de pasos válido', '⚠️'); return; }
-  try {
-    await conTiempo(window._fb.save('pasos_dia', f, { fecha: f, pasos: v }));
-    showToast('Pasos de ayer guardados', '👟');
-    await refrescar();
-  } catch (e) { errorFb(e, 'guardar'); }
 }
 
 // ════════════════════════════════════════
@@ -1102,10 +1289,28 @@ function elegirTipo(t) {
   S.tipo = t;
   $('tipo-caminar').classList.toggle('selected', t === 'caminar');
   $('tipo-bici').classList.toggle('selected', t === 'bici');
+  $('tipo-fuerza').classList.toggle('selected', t === 'fuerza');
   $('act-bici-extra').style.display = t === 'bici' ? 'block' : 'none';
+  $('act-cardio').style.display = t === 'fuerza' ? 'none' : '';
+  $('act-fz-nota').style.display = t === 'fuerza' ? '' : 'none';
+  $('act-guardar').textContent = t === 'fuerza' ? 'Marcar fuerza como hecha' : 'Guardar actividad';
 }
 
 async function guardarActividad() {
+  if (S.tipo === 'fuerza') {
+    const fecha = leerFechaSel('fs-act');
+    if (fuerzaDe(fecha)) { showToast('Ese día ya tiene la fuerza marcada', 'ℹ️'); return; }
+    $('act-guardar').disabled = true;
+    try {
+      await conTiempo(window._fb.add('actividades', { fecha, tipo: 'fuerza' }));
+      montarFechaSel('fs-act', hoyStr());
+      showToast('Fuerza marcada como hecha', '💪');
+      await refrescar();
+      goTo('hoy');
+    } catch (e) { errorFb(e, 'guardar'); }
+    $('act-guardar').disabled = false;
+    return;
+  }
   const duracion = leerDurSel('ds-act');
   if (!duracion || duracion <= 0) { showToast('Añade la duración', '⚠️'); return; }
   const fecha = leerFechaSel('fs-act');
@@ -1139,13 +1344,13 @@ async function guardarActividad() {
 }
 
 // ── Editar una actividad ya registrada ──
-function edTipoCambia() { $('ed-bici-extra').style.display = $('ed-tipo').value === 'bici' ? 'block' : 'none'; }
+function edTipoCambia() { const t = $('ed-tipo').value; $('ed-bici-extra').style.display = t === 'bici' ? 'block' : 'none'; $('ed-cardio').style.display = t === 'fuerza' ? 'none' : ''; }
 
 function abrirEditar(col, id) {
   const a = S.data.acts.find(x => x._col === col && x.id === id);
   if (!a) return;
   S.editando = a;
-  $('ed-tipo').innerHTML = `<option value="caminar">Caminata</option><option value="bici">Bici (Zwift)</option>${a.tipo === 'correr' ? '<option value="correr">Correr (antiguo)</option>' : ''}`;
+  $('ed-tipo').innerHTML = `<option value="caminar">Caminata</option><option value="bici">Bici (Zwift)</option><option value="fuerza">Fuerza</option>${a.tipo === 'correr' ? '<option value="correr">Correr (antiguo)</option>' : ''}`;
   $('ed-tipo').value = a.tipo;
   if (!$('ed-dolor-rodilla').options.length) {
     $('ed-dolor-rodilla').innerHTML = opcionesDolor();
@@ -1165,6 +1370,21 @@ function abrirEditar(col, id) {
 async function guardarEdicion() {
   const a = S.editando;
   if (!a) return;
+  if ($('ed-tipo').value === 'fuerza') {
+    const fecha = leerFechaSel('fs-ed');
+    if (S.data.acts.some(x => x !== a && x.tipo === 'fuerza' && x.fecha === fecha)) { showToast('Ese día ya tiene la fuerza marcada', 'ℹ️'); return; }
+    $('ed-guardar').disabled = true;
+    try {
+      if (a._col === 'cardios') { await window._fb.add('actividades', { fecha, tipo: 'fuerza' }); await window._fb.del('cardios', a.id); }
+      else await window._fb.save('actividades', a.id, { fecha, tipo: 'fuerza' });
+      closeModal('modal-editar');
+      showToast('Cambios guardados', '✏️');
+      await refrescar();
+      if (!$('modal-historial').classList.contains('hidden')) abrirHistorial();
+    } catch (e) { errorFb(e, 'guardar'); }
+    $('ed-guardar').disabled = false;
+    return;
+  }
   const duracion = leerDurSel('ds-ed');
   if (!duracion || duracion <= 0) { showToast('Añade la duración', '⚠️'); return; }
   const tipo = $('ed-tipo').value;
@@ -1220,13 +1440,58 @@ function mediaPesoHasta(pesos, fin) {
   return v.length ? media(v) : null;
 }
 
+// Plan de peso: del primer pesaje desde PLAN_DESDE hasta el objetivo en la fecha objetivo
+function planPeso() {
+  const pesos = S.data.pesos;
+  if (!pesos.length) return null;
+  const hoy = hoyStr(), ult = pesos[0];
+  const desde = pesos.filter(p => p.fecha >= PLAN_DESDE);
+  const ini = desde.length ? desde[desde.length - 1] : ult;
+  const actual = mediaPesoHasta(pesos, ult.fecha); // media de los pesajes de la última semana: un día suelto no manda
+  const obj = S.objPeso, fObj = S.objFecha, faltan = actual - obj;
+  const diasRest = Math.max(1, Math.round((parseISO(fObj) - parseISO(hoy)) / 864e5));
+  const ritmoNec = faltan / (diasRest / 7);
+  // Ritmo real: recta de tendencia con los pesajes de las últimas 4 semanas (mínimo 2 pesajes separados 7 días)
+  const v = pesos.filter(p => p.fecha > addDias(ult.fecha, -28) && p.fecha >= ini.fecha); // solo pesajes del plan actual
+  let bajada = null;
+  if (v.length >= 2) {
+    const xs = v.map(p => (parseISO(p.fecha) - parseISO(ult.fecha)) / 864e5), ys = v.map(p => p.kg);
+    if (Math.max(...xs) - Math.min(...xs) >= 7) {
+      const mx = media(xs), my = media(ys); let sxy = 0, sxx = 0;
+      xs.forEach((x, i) => { sxy += (x - mx) * (ys[i] - my); sxx += (x - mx) ** 2; });
+      bajada = -(sxy / sxx) * 7; // kg por semana (positivo = bajando)
+    }
+  }
+  const llegada = faltan > 0 && bajada > 0.02 ? addDias(ult.fecha, Math.round(faltan / bajada * 7)) : null;
+  return { ini, ult, actual, obj, fObj, faltan, ritmoNec, bajada, llegada };
+}
+function planEn(P, f) {
+  const tot = (parseISO(P.fObj) - parseISO(P.ini.fecha)) / 864e5;
+  if (tot <= 0) return P.obj;
+  return P.ini.kg + (P.obj - P.ini.kg) * Math.min(1, (parseISO(f) - parseISO(P.ini.fecha)) / 864e5 / tot);
+}
+function planTexto(P) {
+  const L = [`Objetivo: ${fmtKg(P.obj)} kg para el ${fmtFechaAnio(P.fObj)} · inicio del plan ${fmtKg(P.ini.kg)} kg (${fmtFecha(P.ini.fecha)}) · ahora ${fmtKg(P.actual)} kg (media de la última semana)`];
+  if (P.faltan <= 0) { L.push('¡Objetivo alcanzado! 🎉'); return L; }
+  L.push(`Faltan ${fmtKg(P.faltan)} kg · ritmo necesario ${fmtKg2(P.ritmoNec)} kg por semana`);
+  if (P.bajada == null) L.push('Ritmo real: hacen falta al menos 2 pesajes separados 7 días o más');
+  else if (P.bajada <= 0.02 || (parseISO(P.llegada) - parseISO(P.fObj)) / 864e5 / 7 > 26) L.push(`Ritmo real (4 semanas): ${P.bajada < -0.02 ? 'subiendo ' + fmtKg2(-P.bajada) + ' kg por semana' : P.bajada > 0.02 ? '−' + fmtKg2(P.bajada) + ' kg por semana' : 'estable'} · a este ritmo no llegas a tiempo`);
+  else {
+    const sem = Math.round((parseISO(P.llegada) - parseISO(P.fObj)) / 864e5 / 7);
+    L.push(`Ritmo real (4 semanas): −${fmtKg2(P.bajada)} kg por semana · llegada estimada ${fmtFechaAnio(P.llegada)} · ${sem < 0 ? `${-sem} semana${sem === -1 ? '' : 's'} antes ✓` : sem === 0 ? 'justo a tiempo ✓' : `${sem} semana${sem === 1 ? '' : 's'} tarde`}`);
+  }
+  return L;
+}
+
 function renderPeso() {
   const pesos = S.data.pesos;
   montarFechaSel('fs-peso', hoyStr());
   if (S.objPeso && document.activeElement !== $('peso-objetivo')) $('peso-objetivo').value = S.objPeso;
+  if (document.activeElement !== $('peso-obj-fecha')) $('peso-obj-fecha').value = S.objFecha;
+  $('peso-plan').innerHTML = '';
 
   if (pesos.length) {
-    const ultimo = pesos[0], primero = pesos[pesos.length - 1];
+    const ultimo = pesos[0], P = planPeso();
     $('peso-actual').textContent = ultimo.kg;
     if (pesos.length > 1) {
       const diff = r1(ultimo.kg - pesos[1].kg);
@@ -1234,13 +1499,11 @@ function renderPeso() {
       const flecha = diff < 0 ? '↓' : diff > 0 ? '↑' : '→';
       $('peso-delta').innerHTML = `<span style="color:${color}; font-family:'DM Mono',monospace; font-size:14px;">${flecha} ${Math.abs(diff)} kg</span>`;
     } else $('peso-delta').innerHTML = '';
-    $('peso-inicio-lbl').textContent = `Inicio: ${primero.kg} kg`;
-    if (S.objPeso) {
-      const total = primero.kg - S.objPeso, hecho = primero.kg - ultimo.kg;
-      const pct = total > 0 ? Math.min(100, Math.max(0, hecho / total * 100)) : 0;
-      $('peso-prog').style.width = pct + '%';
-      $('peso-obj-lbl').textContent = `Objetivo: ${S.objPeso} kg`;
-    } else $('peso-obj-lbl').textContent = 'Objetivo: —';
+    $('peso-inicio-lbl').textContent = `Inicio plan: ${fmtKg(P.ini.kg)} kg`;
+    const total = P.ini.kg - P.obj, hecho = P.ini.kg - P.actual;
+    $('peso-prog').style.width = (total > 0 ? Math.min(100, Math.max(0, hecho / total * 100)) : 0) + '%';
+    $('peso-obj-lbl').textContent = `Objetivo: ${fmtKg(P.obj)} kg`;
+    $('peso-plan').innerHTML = planTexto(P).map(esc).join('<br>');
 
     $('peso-historial').innerHTML = pesos.slice(0, 15).map(p => `
       <div class="row-item">
@@ -1254,7 +1517,8 @@ function renderPeso() {
     const rec = pesos.slice(0, 30).reverse();
     pintarLinea('peso', 'peso-chart', rec.map(p => p.fecha.slice(5)), [
       { label: 'Peso', data: rec.map(p => p.kg), borderColor: cv('--e1'), backgroundColor: cv('--sel'), fill: true, borderWidth: 1.5 },
-      { label: 'Media 7 días', data: rec.map(p => { const m = mediaPesoHasta(pesos, p.fecha); return m == null ? null : r1(m); }), borderColor: cv('--ink'), backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0 }
+      { label: 'Media 7 días', data: rec.map(p => { const m = mediaPesoHasta(pesos, p.fecha); return m == null ? null : r1(m); }), borderColor: cv('--ink'), backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0 },
+      { label: 'Plan', data: rec.map(p => p.fecha >= P.ini.fecha ? r1(planEn(P, p.fecha)) : null), borderColor: cv('--sc'), backgroundColor: 'transparent', borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0, spanGaps: true }
     ], true);
 
     const t = mediaPesoHasta(pesos, ultimo.fecha), tAnt = mediaPesoHasta(pesos, addDias(ultimo.fecha, -7));
@@ -1302,10 +1566,14 @@ async function borrarPeso(id) {
   catch (e) { errorFb(e, 'borrar'); }
 }
 async function guardarObjetivoPeso() {
-  const kg = num($('peso-objetivo').value);
-  if (!kg) return;
-  try { await window._fb.save('config', 'peso_objetivo', { valor: kg }); showToast(`Objetivo: ${kg} kg`, '🎯'); await refrescar(); }
-  catch (e) { errorFb(e, 'guardar'); }
+  const kg = num($('peso-objetivo').value), f = $('peso-obj-fecha').value;
+  if (!kg || kg < 30 || kg > 300) { showToast('Peso objetivo no válido', '⚠️'); return; }
+  if (!f || f <= hoyStr()) { showToast('Elige una fecha futura', '⚠️'); return; }
+  try {
+    await conTiempo(Promise.all([window._fb.save('config', 'peso_objetivo', { valor: kg }), window._fb.save('config', 'peso_objetivo_fecha', { valor: f })]));
+    showToast(`Objetivo: ${fmtKg(kg)} kg para el ${fmtFecha(f)}`, '🎯');
+    await refrescar();
+  } catch (e) { errorFb(e, 'guardar'); }
 }
 
 function renderComposicion() {
@@ -1488,13 +1756,14 @@ function datosCopia() {
   const d = S.data, asc = (a, b) => a.fecha.localeCompare(b.fecha), v = x => (x == null ? '' : x);
   return {
     'Actividades': [...d.acts].sort(asc).map(a => ({
-      'Fecha': a.fecha, 'Tipo': a.tipo === 'bici' ? 'Bici' : a.tipo === 'correr' ? 'Correr' : 'Caminata',
+      'Fecha': a.fecha, 'Tipo': a.tipo === 'bici' ? 'Bici' : a.tipo === 'fuerza' ? 'Fuerza' : a.tipo === 'correr' ? 'Correr' : 'Caminata',
       'Duración (min)': v(a.duracion), 'Duración (h:mm:ss)': a.duracion ? fmtDur(a.duracion) : '', 'Distancia (km)': v(a.distancia), 'Calorías': v(a.calorias), 'FC media (ppm)': v(a.fc_media),
       'Vatios medios': v(a.vatios), 'Entreno Zwift': v(a.zwift), 'Dolor rodilla izq. (0-10)': v(a.dolor_rodilla), 'Dolor pie dcho. (0-10)': v(a.dolor_pie), 'Notas': v(a.notas)
     })),
     'Peso': [...d.pesos].sort(asc).map(p => ({ 'Fecha': p.fecha, 'Peso (kg)': p.kg })),
     'Composición': [...d.comp].sort(asc).map(c => ({ 'Fecha': c.fecha, '% Grasa': v(c.grasa_pct), '% Músculo': v(c.musculo_pct) })),
     'Pasos': Object.entries(d.pasos).sort().map(([f, p]) => ({ 'Fecha': f, 'Pasos': p })),
+    'Calorías': Object.entries(d.kcal).sort().map(([f, k]) => ({ 'Fecha': f, 'Kcal gastadas': v(k.g), 'Kcal consumidas': v(k.c), 'Balance (gastadas − consumidas)': k.g != null && k.c != null ? k.g - k.c : '' })),
     'Cerveza': [...d.cerv].sort().map(f => ({ 'Fecha': f, 'Bebió cerveza': 'Sí' }))
   };
 }
@@ -1531,15 +1800,16 @@ function prepararImport(wb) {
   const hoja = n => wb.Sheets[n] ? XLSX.utils.sheet_to_json(wb.Sheets[n], { defval: null }) : [];
   const claveAct = (f, tipo, dur) => `${f}|${tipo}|${Math.round((dur || 0) * 60)}`;
   const existentes = new Set(S.data.acts.map(a => claveAct(a.fecha, a.tipo, a.duracion)));
-  const P = { acts: [], pesos: [], comp: [], pasos: [], cerv: [], saltados: 0, errores: [] };
+  const P = { acts: [], pesos: [], comp: [], pasos: [], cerv: [], kcal: [], saltados: 0, errores: [] };
   hoja('Actividades').forEach((r, i) => {
     const fecha = fechaImport(r['Fecha']), dur = num(r['Duración (min)']);
     const t = String(r['Tipo'] || '').toLowerCase();
-    const tipo = t.includes('bici') ? 'bici' : t.includes('correr') ? 'correr' : 'caminar';
-    if (!fecha || !dur || dur <= 0) { P.errores.push(`Actividades, fila ${i + 2}: falta fecha o duración`); return; }
+    const tipo = t.includes('bici') ? 'bici' : t.includes('fuerza') ? 'fuerza' : t.includes('correr') ? 'correr' : 'caminar';
+    if (!fecha || (tipo !== 'fuerza' && (!dur || dur <= 0))) { P.errores.push(`Actividades, fila ${i + 2}: falta fecha o duración`); return; }
     const k = claveAct(fecha, tipo, dur);
     if (existentes.has(k)) { P.saltados++; return; }
     existentes.add(k);
+    if (tipo === 'fuerza') { P.acts.push({ fecha, tipo }); return; }
     const d = { fecha, tipo, duracion: dur, distancia: num(r['Distancia (km)']), calorias: num(r['Calorías']), fc_media: num(r['FC media (ppm)']),
       vatios: num(r['Vatios medios']), zwift: r['Entreno Zwift'] ? String(r['Entreno Zwift']) : null,
       dolor_rodilla: num(r['Dolor rodilla izq. (0-10)']), dolor_pie: num(r['Dolor pie dcho. (0-10)']), notas: r['Notas'] ? String(r['Notas']) : null };
@@ -1567,6 +1837,12 @@ function prepararImport(wb) {
     if (S.data.pasos[fecha]) { P.saltados++; return; }
     P.pasos.push({ fecha, pasos });
   });
+  hoja('Calorías').forEach((r, i) => {
+    const fecha = fechaImport(r['Fecha']), g = num(r['Kcal gastadas']), c = num(r['Kcal consumidas']);
+    if (!fecha || (g === null && c === null)) { P.errores.push(`Calorías, fila ${i + 2}: dato no válido`); return; }
+    if (S.data.kcal[fecha]) { P.saltados++; return; }
+    const d = { fecha }; if (g !== null) d.gastadas = Math.round(g); if (c !== null) d.consumidas = Math.round(c); P.kcal.push(d);
+  });
   hoja('Cerveza').forEach((r, i) => {
     const fecha = fechaImport(r['Fecha']);
     if (!fecha) { P.errores.push(`Cerveza, fila ${i + 2}: fecha no válida`); return; }
@@ -1581,6 +1857,7 @@ function resumenImport(P) {
   if (P.pesos.length) L.push(`⚖️ <strong>${P.pesos.length}</strong> pesos`);
   if (P.comp.length) L.push(`📊 <strong>${P.comp.length}</strong> composiciones`);
   if (P.pasos.length) L.push(`👟 <strong>${P.pasos.length}</strong> días de pasos`);
+  if (P.kcal.length) L.push(`🔥 <strong>${P.kcal.length}</strong> días de calorías`);
   if (P.cerv.length) L.push(`🍺 <strong>${P.cerv.length}</strong> días con cerveza`);
   if (P.saltados) L.push(`⏭️ ${P.saltados} ya existían y se saltan`);
   if (P.acts.length) {
@@ -1600,7 +1877,7 @@ async function leerImport(input) {
     const wb = XLSX.read(await f.arrayBuffer(), { type: 'array' });
     const P = prepararImport(wb);
     $('imp-resumen').innerHTML = resumenImport(P);
-    if (P.acts.length + P.pesos.length + P.comp.length + P.pasos.length + P.cerv.length) { S.importPend = P; $('imp-confirmar').style.display = 'block'; }
+    if (P.acts.length + P.pesos.length + P.comp.length + P.pasos.length + P.cerv.length + P.kcal.length) { S.importPend = P; $('imp-confirmar').style.display = 'block'; }
   } catch (e) { console.error(e); $('imp-resumen').textContent = 'No he podido leer el archivo: ' + e.message; }
   input.value = '';
 }
@@ -1614,7 +1891,8 @@ async function confirmarImport() {
       ...P.pesos.map(d => () => window._fb.add('pesos', d)),
       ...P.comp.map(d => () => window._fb.save('composicion', d.fecha, d)),
       ...P.pasos.map(d => () => window._fb.save('pasos_dia', d.fecha, d)),
-      ...P.cerv.map(d => () => window._fb.save('cerveza_dia', d.fecha, d))
+      ...P.cerv.map(d => () => window._fb.save('cerveza_dia', d.fecha, d)),
+      ...P.kcal.map(d => () => window._fb.save('kcal_dia', d.fecha, d))
     ];
     for (let i = 0; i < tareas.length; i += 10) await Promise.all(tareas.slice(i, i + 10).map(t => t()));
     S.importPend = null;
@@ -1644,12 +1922,12 @@ function calendarioMes(d) {
 function circuloDia(f, ok, hoy, tipo) {
   const p = f <= hoy ? (S.data.pasos[f] || 0) : 0;
   const deg = Math.min(360, Math.round(p / 10000 * 360));
-  const hecho = ok.has(f) && f <= hoy;
+  const niv = f <= hoy ? nivelDia(f) : 0, hecho = niv === 2, medio = niv === 1;
   const estilo = p ? `--p:${deg}deg; --trk:var(--trkc);` : '';
   const dia = parseInt(f.slice(8), 10);
   const txt = tipo === 'hab' ? '✓' : (hecho ? '✓' : dia);
-  const bici = hecho && S._tipos && S._tipos[f] && S._tipos[f].bici, nb = sinCerveza(f);
-  return `<div class="rc ${tipo}${f === hoy ? ' hoy' : ''}${f > hoy ? ' futuro' : ''}" style="${estilo}"${p ? ` title="${p.toLocaleString('es-ES')} pasos"` : ''}><div class="ri${hecho ? ' ok' : ''}${nb ? ' nb' : ''}">${txt}</div>${bici ? '<i class="bici-dot"></i>' : ''}</div>`;
+  const bici = niv && S._tipos[f].bici, nb = sinCerveza(f);
+  return `<div class="rc ${tipo}${f === hoy ? ' hoy' : ''}${f > hoy ? ' futuro' : ''}" style="${estilo}"${p ? ` title="${p.toLocaleString('es-ES')} pasos"` : ''}><div class="ri${hecho ? ' ok' : ''}${medio ? ' half' : ''}${nb ? ' nb' : ''}">${txt}</div>${bici ? '<i class="bici-dot"></i>' : ''}</div>`;
 }
 function renderCalendario() {
   $('cal-titulo').textContent = `${MESES[S.calM]} ${S.calY}`;
@@ -1708,43 +1986,87 @@ function renderPasosStats() {
 // ════════════════════════════════════════
 // RESUMEN SEMANAL PARA CLAUDE
 // ════════════════════════════════════════
+function descAct(a) {
+  if (a.tipo === 'fuerza') return 'fuerza ✓';
+  const t = a.tipo === 'bici' ? 'bici' + (a.zwift ? ` (${a.zwift})` : '') : a.tipo === 'correr' ? 'correr' : 'caminata';
+  return t + ` ${a.distancia ? fmtKm(a.distancia) + ' km' : 'sin km'} en ${a.duracion ? fmtDur(a.duracion) : '?'}` + (a.vatios ? ` · ${a.vatios} W` : '') + (a.fc_media ? ` · ${a.fc_media} ppm` : '');
+}
+// Semanal: los últimos 7 días completos, hasta ayer
 function generarResumen() {
-  const hoy = hoyStr(), desde = addDias(hoy, -6), desdeAnt = addDias(hoy, -13), hastaAnt = addDias(hoy, -7);
-  const s = statsRango(desde, hoy), p = statsRango(desdeAnt, hastaAnt);
+  const hoy = hoyStr(), hasta = addDias(hoy, -1), desde = addDias(hoy, -7), desdeAnt = addDias(hoy, -14), hastaAnt = addDias(hoy, -8);
+  const s = statsRango(desde, hasta), p = statsRango(desdeAnt, hastaAnt);
   const n = (v, dec = 1, u = '') => v == null ? 'sin datos' : (Math.round(v * 10 ** dec) / 10 ** dec).toLocaleString('es-ES') + u;
+  const bal = v => v == null ? 'sin datos' : v > 0 ? `déficit de ${fmtN(v)} kcal` : v < 0 ? `exceso de ${fmtN(-v)} kcal` : '0 kcal';
   const L = [];
-  L.push(`RESUMEN SEMANAL GYMLOG — del ${desde} al ${hoy} (últimos 7 días)`);
+  L.push(`RESUMEN SEMANAL — del ${fmtFecha(desde)} al ${fmtFecha(hasta)} (${desde} → ${hasta}, últimos 7 días completos)`);
   L.push('');
-  L.push(`CAMINATA: ${s.cam.length} sesiones · ${n(s.kmCam, 1, ' km')} (objetivo ${S.objKm} km) · ${fmtDur(s.minCam)} · FC media ${s.fcCamMedia ?? 'sin datos'} ppm`);
-  L.push(`BICI: ${s.bici.length} sesiones · ${n(s.kmBici, 1, ' km')} · ${fmtDur(s.minBici)} · vatios medios ${n(s.vatiosMedia, 0, ' W')}`);
-  L.push(`CALORÍAS registradas en actividades: ${Math.round(s.kcal)} kcal`);
-  L.push(`PASOS: media ${s.pasosMedia ? s.pasosMedia.toLocaleString('es-ES') : 'sin datos'} /día (${s.pasosDias} días registrados, ${s.dias10k} con ≥10.000)`);
+  L.push(`CAMINATA: ${s.cam.length} ${s.cam.length === 1 ? 'sesión' : 'sesiones'} · ${n(s.kmCam, 1, ' km')} (objetivo ${S.objKm} km) · ${fmtDur(s.minCam)} · FC media ${s.fcCamMedia ? s.fcCamMedia + ' ppm' : 'sin datos'}`);
+  L.push(`BICI: ${s.bici.length} ${s.bici.length === 1 ? 'sesión' : 'sesiones'} · ${n(s.kmBici, 1, ' km')} · ${fmtDur(s.minBici)} · vatios medios ${n(s.vatiosMedia, 0, ' W')}`);
+  L.push(`FUERZA: ${s.diasFuerza} días (objetivo ${OBJ_FUERZA} por semana)`);
+  L.push(`CALORÍAS DEL DÍA (${s.diasKcal} de 7 días completos): media gastadas ${s.kgMedia == null ? 'sin datos' : fmtN(s.kgMedia) + ' kcal'} · media consumidas ${s.kcMedia == null ? 'sin datos' : fmtN(s.kcMedia) + ' kcal'} · balance medio ${bal(s.balMedia)}`);
+  L.push(`PASOS: media ${s.pasosMedia ? fmtN(s.pasosMedia) : 'sin datos'} /día (${s.pasosDias} días registrados, ${s.dias10k} con ≥10.000)`);
+  { let con = 0, tot = 0; for (let f = desde; f <= hasta; f = addDias(f, 1)) if (f >= DESDE_CERVEZA) { tot++; if (S.data.cerv.has(f)) con++; }
+    L.push(tot ? `CERVEZA: ${con} día${con === 1 ? '' : 's'} con cerveza de ${tot}` : 'CERVEZA: sin registro todavía'); }
   L.push(`DOLOR RODILLA IZQ. (0-10): media ${n(s.dolorRodMedia)} · máximo ${s.dolorRodMax ?? 'sin datos'}`);
   L.push(`DOLOR PIE DCHO. (0-10): media ${n(s.dolorPieMedia)} · máximo ${s.dolorPieMax ?? 'sin datos'}`);
   L.push(`DÍAS ACTIVOS: ${s.diasActivos} de 7`);
-  { let con = 0, tot = 0; for (let f = desde; f < hoy; f = addDias(f, 1)) if (f >= DESDE_CERVEZA) { tot++; if (S.data.cerv.has(f)) con++; }
-    L.push(tot ? `CERVEZA: ${con} día${con === 1 ? '' : 's'} con cerveza de ${tot} registrados (hasta ayer)` : 'CERVEZA: sin registro todavía'); }
   L.push('');
-  L.push(`SEMANA ANTERIOR (${desdeAnt} → ${hastaAnt}): caminata ${n(p.kmCam, 1, ' km')} en ${p.cam.length} sesiones · bici ${n(p.kmBici, 1, ' km')} en ${p.bici.length} sesiones · pasos media ${p.pasosMedia ? p.pasosMedia.toLocaleString('es-ES') : 'sin datos'} · dolor rodilla media ${n(p.dolorRodMedia)} · dolor pie media ${n(p.dolorPieMedia)}`);
+  L.push(`SEMANA ANTERIOR (${desdeAnt} → ${hastaAnt}): caminata ${n(p.kmCam, 1, ' km')} en ${p.cam.length} sesiones · bici ${n(p.kmBici, 1, ' km')} en ${p.bici.length} sesiones · fuerza ${p.diasFuerza} días · pasos media ${p.pasosMedia ? fmtN(p.pasosMedia) : 'sin datos'} · balance medio ${bal(p.balMedia)} · dolor rodilla media ${n(p.dolorRodMedia)} · dolor pie media ${n(p.dolorPieMedia)}`);
   L.push('');
   const pesos = S.data.pesos;
   if (pesos.length) {
-    const reciente = pesos[0];
-    const hace7 = pesos.find(x => x.fecha <= addDias(hoy, -7));
-    L.push(`PESO: ${reciente.kg} kg (${reciente.fecha})` + (hace7 ? ` · hace ~7 días: ${hace7.kg} kg (${hace7.fecha}) · diferencia ${r1(reciente.kg - hace7.kg)} kg` : '') + (S.objPeso ? ` · objetivo ${S.objPeso} kg` : ''));
+    L.push('PESO: ' + (pesos.filter(x => x.fecha >= addDias(hoy, -14)).slice().reverse().map(x => `${fmtFecha(x.fecha)} ${fmtKg(x.kg)} kg`).join(' · ') || 'sin pesajes en las últimas 2 semanas'));
+    planTexto(planPeso()).forEach(x => L.push('  ' + x));
   } else L.push('PESO: sin registros');
   const c = S.data.comp[0], c2 = S.data.comp[1];
   if (c) L.push(`COMPOSICIÓN (${c.fecha}): grasa ${c.grasa_pct ?? 'sin datos'} % · músculo ${c.musculo_pct ?? 'sin datos'} %` + (c2 ? ` · registro anterior (${c2.fecha}): grasa ${c2.grasa_pct ?? 'sin datos'} % · músculo ${c2.musculo_pct ?? 'sin datos'} %` : ''));
   L.push('');
-  L.push('DETALLE DE SESIONES:');
-  const det = s.acts.slice().sort((a, b) => a.fecha.localeCompare(b.fecha));
-  if (det.length) det.forEach(a => L.push(`- ${a.fecha} · ${a.tipo}` + (a.zwift ? ` (${a.zwift})` : '') + ` · ${a.duracion ? fmtDur(a.duracion) : '?'} · ${a.distancia ? a.distancia + ' km' : 'sin km'}` + (a.vatios ? ` · ${a.vatios} W` : '') + (a.fc_media ? ` · ${a.fc_media} ppm` : '') + ` · rodilla ${a.dolor_rodilla ?? '-'} · pie ${a.dolor_pie ?? '-'}` + (a.notas ? ` · "${a.notas}"` : '')));
-  else L.push('- Sin sesiones en los últimos 7 días');
+  L.push('DÍA A DÍA:');
+  for (let f = desde; f <= hasta; f = addDias(f, 1)) {
+    const e = estadoDia(f), acts = S.data.acts.filter(a => a.fecha === f), pz = S.data.pesos.find(x => x.fecha === f);
+    const partes = [`pasos ${e.pasos != null ? fmtN(e.pasos) : '—'}`, `kcal gastadas ${e.g != null ? fmtN(e.g) : '—'} / consumidas ${e.c != null ? fmtN(e.c) : '—'}` + (txtBalance(e.g, e.c) ? ` (${txtBalance(e.g, e.c).toLowerCase()})` : '')];
+    if (f >= DESDE_CERVEZA) partes.push('cerveza ' + (e.cerv ? 'sí' : 'no'));
+    partes.push(acts.length ? acts.map(descAct).join(' + ') : 'sin entreno');
+    const dol = acts.filter(a => num(a.dolor_rodilla) || num(a.dolor_pie));
+    if (dol.length) partes.push('dolor ' + dol.map(a => `rodilla ${a.dolor_rodilla ?? 0} · pie ${a.dolor_pie ?? 0}`).join(' / '));
+    if (pz) partes.push(`peso ${fmtKg(pz.kg)} kg`);
+    const notas = acts.filter(a => a.notas).map(a => `"${a.notas}"`);
+    if (notas.length) partes.push(notas.join(' '));
+    L.push(`- ${fmtFecha(f)}: ${partes.join(' · ')}`);
+  }
   L.push('');
   L.push('Analiza mi semana teniendo en cuenta mi informe médico y mi plan: qué ha ido bien, qué ajustar y qué hacer la semana que viene.');
   return L.join('\n');
 }
-function abrirResumen() { $('resumen-texto').value = generarResumen(); openModal('modal-resumen'); }
+// Diario: el día de ayer (más el peso de hoy)
+function generarResumenDia() {
+  const hoy = hoyStr(), f = addDias(hoy, -1), e = estadoDia(f), acts = S.data.acts.filter(a => a.fecha === f);
+  const L = [];
+  L.push(`RESUMEN DEL DÍA — ${fmtFechaLarga(f)} (${f})`);
+  L.push('');
+  L.push(`PASOS: ${e.pasos != null ? fmtN(e.pasos) : 'sin anotar'}`);
+  L.push(`CALORÍAS: gastadas ${e.g != null ? fmtN(e.g) + ' kcal' : 'sin anotar'} · consumidas ${e.c != null ? fmtN(e.c) + ' kcal' : 'sin anotar'}` + (txtBalance(e.g, e.c) ? ' · ' + txtBalance(e.g, e.c).toLowerCase() : ''));
+  if (f >= DESDE_CERVEZA) L.push(`CERVEZA: ${e.cerv ? 'sí' : 'no'}`);
+  const card = acts.filter(a => a.tipo !== 'fuerza');
+  L.push('CARDIO: ' + (card.length ? card.map(a => descAct(a) + ` · rodilla ${a.dolor_rodilla ?? '-'} · pie ${a.dolor_pie ?? '-'}` + (a.notas ? ` · "${a.notas}"` : '')).join(' + ') : 'ninguno'));
+  L.push(`FUERZA: ${fuerzaDe(f) ? 'hecha' : 'no'} · semana ${fuerzaSemana(f)} de ${OBJ_FUERZA}`);
+  L.push(`PESO HOY: ${e.peso != null ? fmtKg(e.peso) + ' kg' : 'sin pesar'}`);
+  const P = planPeso();
+  if (P) planTexto(P).forEach(x => L.push(x));
+  L.push('');
+  L.push('Coméntame este día brevemente: qué ha ido bien y qué ajustar hoy.');
+  return L.join('\n');
+}
+function abrirResumen() {
+  $('resumen-titulo').textContent = 'Resumen semanal';
+  $('resumen-ayuda').textContent = 'Últimos 7 días completos (hasta ayer). Cópialo y pégalo en el proyecto "Entrenador Personal" de Claude para que analice tu semana.';
+  $('resumen-texto').value = generarResumen(); openModal('modal-resumen');
+}
+function abrirResumenDia() {
+  $('resumen-titulo').textContent = 'Resumen del día';
+  $('resumen-ayuda').textContent = 'Opcional: pégalo en el proyecto "Entrenador Personal" si quieres que Claude te comente el día. El resumen semanal ya incluye todos los días.';
+  $('resumen-texto').value = generarResumenDia(); openModal('modal-resumen');
+}
 async function copiarResumen() {
   const ta = $('resumen-texto');
   try { await navigator.clipboard.writeText(ta.value); showToast('Resumen copiado', '📋'); }
@@ -1763,7 +2085,14 @@ async function iniciar() {
   montarFechaSel('fs-act', hoyStr());
   montarFechaSel('fs-peso', hoyStr());
   $('hoy-fecha').textContent = fmtFechaLarga(hoyStr());
-  $('pl-input').onkeydown = e => { if (e.key === 'Enter') { e.preventDefault(); pasosLoteIr(-1); } };
+  const cadena = (ids, fin) => ids.forEach((id, k) => $(id).onkeydown = e => {
+    if (e.key !== 'Enter') return;
+    e.preventDefault();
+    if (k < ids.length - 1) { $(ids[k + 1]).focus(); $(ids[k + 1]).select?.(); } else fin();
+  });
+  cadena(['pl-input', 'pl-kg', 'pl-kc'], () => pasosLoteIr(-1));
+  cadena(['rg-pasos', 'rg-kg', 'rg-kc', 'rg-peso'], () => $('rg-peso').blur());
+  ['rg-kg', 'rg-kc'].forEach(id => $(id).oninput = rgPintar);
   const ordenPeso = ['nuevo-peso', 'comp-grasa', 'comp-musculo'];
   ordenPeso.forEach((id, k) => $(id).onkeydown = e => {
     if (e.key !== 'Enter') return;
