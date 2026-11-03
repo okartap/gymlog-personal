@@ -520,10 +520,14 @@ body { text-align:center; }
       <button class="btn btn-primary" onclick="abrirResumen()">📋 Resumen semanal para Claude</button>
     </div>
 
-    <div class="sec-label">🔥 Racha</div>
-    <div class="grid2">
-      <div class="stat-card"><div class="stat-val" id="stats-racha">0</div><div class="stat-lbl">Racha actual</div></div>
-      <div class="stat-card"><div class="stat-val" id="stats-mejor">0</div><div class="stat-lbl">Mejor racha</div></div>
+    <div class="sec-label">🗓️ Este año</div>
+    <div class="card" style="padding:16px;">
+      <div class="heat" id="heat"></div>
+      <div class="leyenda">
+        <span><u></u>nada</span><span><u class="e1"></u>entreno</span><span><u class="e2"></u>entreno + 10.000 pasos</span><span><u class="pp"></u>solo 10.000 pasos</span>
+        <span><u class="nb"></u>con color verde = sin cerveza</span>
+      </div>
+      <div style="margin-top:8px; font-size:11px; color:var(--txt3);">Últimas 26 semanas, de lunes (arriba) a domingo (abajo).</div>
     </div>
 
     <div class="sec-label">👟 Pasos</div>
@@ -533,19 +537,8 @@ body { text-align:center; }
         <button id="pr-90" onclick="pasosRango(90)">90 días</button>
         <button id="pr-0" onclick="pasosRango(0)">Todo</button>
       </div>
-      <div class="grid2" id="pasos-tiles" style="margin:0 0 12px;"></div>
       <div class="chart-wrap"><canvas id="pasos-chart"></canvas></div>
       <div style="margin-top:8px; font-size:11px; color:var(--txt3);">Barra llena = 10.000 pasos o más. La línea discontinua marca el objetivo.</div>
-    </div>
-
-    <div class="sec-label">🗓️ Este año</div>
-    <div class="card" style="padding:16px;">
-      <div class="heat" id="heat"></div>
-      <div class="leyenda">
-        <span><u></u>nada</span><span><u class="e1"></u>entreno</span><span><u class="e2"></u>entreno + 10.000 pasos</span><span><u class="pp"></u>solo 10.000 pasos</span>
-        <span><u class="nb"></u>con color verde = sin cerveza</span>
-      </div>
-      <div style="margin-top:8px; font-size:11px; color:var(--txt3);">Últimas 26 semanas, de lunes (arriba) a domingo (abajo).</div>
     </div>
 
     <div class="sec-label">📆 Calendario de hábito</div>
@@ -569,6 +562,15 @@ body { text-align:center; }
       </div>
       <div id="cal-nota" style="margin-top:10px; font-size:11px; color:var(--txt3);">Desde el 9 de noviembre, el círculo se rellena entero si haces cardio (caminata o bici) y fuerza el mismo día, y por la mitad si haces solo una. Antes de esa fecha, cualquier entreno lo rellena entero. El anillo se completa al llegar a 10.000 pasos.</div>
     </div>
+
+    <div class="sec-label">🔥 Racha</div>
+    <div class="grid2">
+      <div class="stat-card"><div class="stat-val" id="stats-racha">0</div><div class="stat-lbl">Racha actual</div></div>
+      <div class="stat-card"><div class="stat-val" id="stats-mejor">0</div><div class="stat-lbl">Mejor racha</div></div>
+    </div>
+
+    <div class="sec-label" id="pasos-tiles-lbl">👟 Resumen de pasos</div>
+    <div class="grid2" id="pasos-tiles"></div>
 
     <div class="sec-label">Esta semana vs anterior (lunes a domingo)</div>
     <div id="stats-semana"></div>
@@ -1957,6 +1959,7 @@ function pasosRango(n) {
 function renderPasosStats() {
   const n = S.pasosRango === undefined ? 30 : S.pasosRango, hoy = hoyStr();
   [30, 90, 0].forEach(k => $('pr-' + k).classList.toggle('on', k === n));
+  $('pasos-tiles-lbl').textContent = '👟 Resumen de pasos · ' + (n ? `últimos ${n} días` : 'todo');
   const fechasReg = Object.keys(S.data.pasos).filter(f => f <= hoy).sort();
   let desde = n ? addDias(hoy, -(n - 1)) : (fechasReg[0] || hoy);
   const dias = [];
