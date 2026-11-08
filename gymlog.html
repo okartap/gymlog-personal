@@ -301,6 +301,18 @@ body { text-align:center; }
 .seg4 { display:flex; gap:6px; margin:8px 0 6px; }
 .seg4 i { flex:1; height:7px; border-radius:5px; background:var(--bg3); }
 .seg4 i.d { background:var(--ink); }
+/* teclado numérico propio (como el de Numbers) */
+.teclado { position:fixed; left:0; right:0; bottom:0; z-index:260; display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:10px 10px calc(14px + env(safe-area-inset-bottom)); background:var(--bg); border-top:1px solid var(--border); animation:slideUp .2s ease; }
+.teclado.hidden { display:none; }
+.teclado button { height:52px; border:none; border-radius:12px; background:var(--bg3); color:var(--txt); font-size:25px; font-family:'DM Sans',sans-serif; touch-action:manipulation; -webkit-tap-highlight-color:transparent; cursor:pointer; }
+.teclado button:active { opacity:.55; }
+.teclado .kp-g { background:var(--bg2); color:var(--txt2); font-size:21px; }
+.teclado .kp-sig { background:var(--ink); color:var(--onink); font-size:28px; }
+.teclado .kp-ok { height:auto; grid-row:span 2; font-size:16px; font-weight:600; }
+.modal-overlay.kp-on .modal-sheet { padding-bottom:calc(275px + env(safe-area-inset-bottom)); max-height:100vh; }
+body.kp-on { padding-bottom:300px; }
+.kp-in { caret-color:transparent; cursor:pointer; }
+.kp-in.kp-act { border-color:var(--ink); box-shadow:0 0 0 1px var(--ink); }
 .peso-plan { margin-top:12px; padding-top:12px; border-top:1px solid var(--border); font-size:12px; color:var(--txt2); line-height:1.7; }
 .peso-plan b { color:var(--txt); }
 </style>
@@ -406,14 +418,14 @@ body { text-align:center; }
       <div id="act-cardio">
       <div class="input-wrap"><label>Duración (horas · minutos · segundos)</label><div class="fecha-sel dur-sel" id="ds-act"></div></div>
       <div class="row2">
-        <div class="input-wrap"><label>Distancia (km)</label><input type="number" inputmode="decimal" step="0.01" class="inp" id="act-distancia"></div>
-        <div class="input-wrap"><label>Calorías</label><input type="number" inputmode="numeric" class="inp" id="act-calorias"></div>
+        <div class="input-wrap"><label>Distancia (km)</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="act-distancia"></div>
+        <div class="input-wrap"><label>Calorías</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="act-calorias"></div>
       </div>
-      <div class="input-wrap"><label>FC media (ppm)</label><input type="number" inputmode="numeric" class="inp" id="act-fc"></div>
+      <div class="input-wrap"><label>FC media (ppm)</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="act-fc"></div>
 
       <div id="act-bici-extra" style="display:none;">
         <div class="row2">
-          <div class="input-wrap"><label>Vatios medios</label><input type="number" inputmode="numeric" class="inp" id="act-vatios"></div>
+          <div class="input-wrap"><label>Vatios medios</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="act-vatios"></div>
           <div class="input-wrap"><label>Entreno Zwift</label><input type="text" class="inp" id="act-zwift" placeholder="Nombre del programa"></div>
         </div>
       </div>
@@ -471,13 +483,13 @@ body { text-align:center; }
     <div class="sec-label">Registrar peso y composición</div>
     <div class="card">
       <div class="input-wrap"><label>Fecha</label><div class="fecha-sel" id="fs-peso"></div></div>
-      <div class="input-wrap"><label>Peso (kg)</label><input type="number" step="0.1" enterkeyhint="next" class="inp" id="nuevo-peso"></div>
+      <div class="input-wrap"><label>Peso (kg)</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="nuevo-peso"></div>
       <div class="row2">
-        <div class="input-wrap"><label>% Grasa</label><input type="number" step="0.1" enterkeyhint="next" class="inp" id="comp-grasa"></div>
-        <div class="input-wrap"><label>% Músculo</label><input type="number" step="0.1" enterkeyhint="done" class="inp" id="comp-musculo"></div>
+        <div class="input-wrap"><label>% Grasa</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="comp-grasa"></div>
+        <div class="input-wrap"><label>% Músculo</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="comp-musculo"></div>
       </div>
       <button class="btn btn-primary" onclick="guardarPeso()">Guardar</button>
-      <div style="font-size:12px; color:var(--txt3); margin-top:8px;">Puedes rellenar solo el peso, o los tres datos. Pulsa Intro para pasar al siguiente campo.</div>
+      <div style="font-size:12px; color:var(--txt3); margin-top:8px;">Puedes rellenar solo el peso, o los tres datos. La tecla → pasa al siguiente dato y, en el último, guarda.</div>
     </div>
 
     <div id="comp-resumen-wrap" style="display:none;">
@@ -496,7 +508,7 @@ body { text-align:center; }
       <div style="display:flex; gap:10px; align-items:flex-end;">
         <div style="flex:1;">
           <label style="font-size:12px; color:var(--txt2); display:block; margin-bottom:6px;">Peso objetivo (kg)</label>
-          <input type="number" step="0.1" inputmode="decimal" class="inp" id="peso-objetivo">
+          <input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="peso-objetivo">
         </div>
         <div style="flex:1.3;">
           <label style="font-size:12px; color:var(--txt2); display:block; margin-bottom:6px;">Para el día</label>
@@ -580,7 +592,7 @@ body { text-align:center; }
       <div class="chart-wrap"><canvas id="km-chart"></canvas></div>
       <div style="display:flex; align-items:center; gap:10px; margin-top:10px;">
         <label style="font-size:12px; color:var(--txt2); white-space:nowrap;">Objetivo km/semana</label>
-        <input type="number" inputmode="numeric" class="inp" id="obj-km" style="padding:8px 12px;">
+        <input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="obj-km" style="padding:8px 12px;">
         <button class="btn btn-ghost btn-sm" onclick="guardarObjetivoKm()">Guardar</button>
       </div>
     </div>
@@ -661,13 +673,13 @@ body { text-align:center; }
       </div>
       <button class="btn btn-ghost" style="width:56px; padding:12px 0; font-size:20px;" id="pl-sig" onclick="pasosLoteIr(1)">›</button>
     </div>
-    <div class="input-wrap"><label>Pasos de ese día (Huawei Salud)</label><input type="number" enterkeyhint="next" class="inp" id="pl-input" placeholder="0" style="font-size:22px;"></div>
+    <div class="input-wrap"><label>Pasos de ese día (Huawei Salud)</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="pl-input" placeholder="0" style="font-size:22px;"></div>
     <div class="row2">
-      <div class="input-wrap"><label>🔥 Kcal gastadas</label><input type="number" enterkeyhint="next" class="inp" id="pl-kg" placeholder="—"></div>
-      <div class="input-wrap"><label>🍽️ Kcal consumidas</label><input type="number" enterkeyhint="next" class="inp" id="pl-kc" placeholder="—"></div>
+      <div class="input-wrap"><label>🔥 Kcal gastadas</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="pl-kg" placeholder="—"></div>
+      <div class="input-wrap"><label>🍽️ Kcal consumidas</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="pl-kc" placeholder="—"></div>
     </div>
     <div class="hoy-fila" id="pl-cerv-row" style="margin:0 0 12px;"><div style="font-weight:600; font-size:13px;">🍺 Cerveza ese día</div><div class="pill" id="pl-pill"><button id="pl-no" onclick="plCerv(false)">Sin cerveza</button><button id="pl-si" onclick="plCerv(true)">Bebí</button></div></div>
-    <div style="font-size:12px; color:var(--txt2); margin:-4px 0 12px; text-align:center;">Toca la fecha para elegir otro día, o usa ‹ › (Intro pasa al siguiente dato y, en el último, al día anterior). Nada se guarda hasta que pulses "Guardar todo".</div>
+    <div style="font-size:12px; color:var(--txt2); margin:-4px 0 12px; text-align:center;">Toca la fecha para elegir otro día, o usa ‹ ›. La tecla → pasa al siguiente dato y, en el último, al día anterior. Nada se guarda hasta que pulses "Guardar todo".</div>
     <div id="pl-pend" style="font-size:12px; color:var(--txt2); line-height:1.7; text-align:center; margin-bottom:12px;"></div>
     <div style="display:flex; gap:10px;">
       <button class="btn btn-ghost" onclick="closeModal('modal-pasos')">Cancelar</button>
@@ -676,18 +688,25 @@ body { text-align:center; }
   </div>
 </div>
 
+<div id="teclado" class="teclado hidden">
+  <button onclick="kpTecla('7')">7</button><button onclick="kpTecla('8')">8</button><button onclick="kpTecla('9')">9</button><button class="kp-g" onclick="kpTecla('del')" aria-label="Borrar">⌫</button>
+  <button onclick="kpTecla('4')">4</button><button onclick="kpTecla('5')">5</button><button onclick="kpTecla('6')">6</button><button class="kp-sig" id="kp-sig" onclick="kpTecla('sig')" aria-label="Siguiente">→</button>
+  <button onclick="kpTecla('1')">1</button><button onclick="kpTecla('2')">2</button><button onclick="kpTecla('3')">3</button><button class="kp-g kp-ok" onclick="kpTecla('ok')">Listo</button>
+  <button class="kp-g" id="kp-coma" onclick="kpTecla(',')">,</button><button onclick="kpTecla('0')">0</button><button class="kp-g" onclick="kpTecla('C')" aria-label="Borrar todo">C</button>
+</div>
+
 <div id="modal-registro" class="modal-overlay hidden">
   <div class="modal-sheet">
     <div class="modal-handle"></div>
     <div class="modal-title" id="rg-titulo">Ayer</div>
     <div class="reg-sec">Datos de ayer</div>
-    <div class="reg-row"><div class="l">👟 Pasos</div><input type="number" enterkeyhint="next" class="inp" id="rg-pasos" placeholder="—"></div>
-    <div class="reg-row"><div class="l">🔥 Kcal gastadas<small>Total del día (reloj)</small></div><input type="number" enterkeyhint="next" class="inp" id="rg-kg" placeholder="—"></div>
-    <div class="reg-row"><div class="l">🍽️ Kcal consumidas<small>Lo que comiste</small></div><input type="number" enterkeyhint="next" class="inp" id="rg-kc" placeholder="—"></div>
+    <div class="reg-row"><div class="l">👟 Pasos</div><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="rg-pasos" placeholder="—"></div>
+    <div class="reg-row"><div class="l">🔥 Kcal gastadas<small>Total del día (reloj)</small></div><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="rg-kg" placeholder="—"></div>
+    <div class="reg-row"><div class="l">🍽️ Kcal consumidas<small>Lo que comiste</small></div><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="rg-kc" placeholder="—"></div>
     <div class="reg-bal" id="rg-bal"></div>
     <div class="reg-row" id="rg-cerv-row"><div class="l">🍺 Cerveza</div><div class="pill"><button id="rg-no" onclick="rgCerv(false)">Sin cerveza</button><button id="rg-si" onclick="rgCerv(true)">Bebí</button></div></div>
     <div class="reg-sec">Hoy</div>
-    <div class="reg-row" style="border-bottom:none;"><div class="l">⚖️ Peso de hoy<small id="rg-peso-ult">Opcional</small></div><input type="number" step="0.1" enterkeyhint="done" class="inp" id="rg-peso" placeholder="kg"></div>
+    <div class="reg-row" style="border-bottom:none;"><div class="l">⚖️ Peso de hoy<small id="rg-peso-ult">Opcional</small></div><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="rg-peso" placeholder="kg"></div>
     <div style="display:flex; gap:10px; margin-top:14px;">
       <button class="btn btn-ghost" onclick="closeModal('modal-registro')">Cancelar</button>
       <button class="btn btn-primary" id="rg-guardar" onclick="guardarRegistro()">Guardar todo</button>
@@ -704,15 +723,15 @@ body { text-align:center; }
     <div id="ed-cardio">
     <div class="row2">
       <div class="input-wrap"><label>Duración (horas · minutos · segundos)</label><div class="fecha-sel dur-sel" id="ds-ed"></div></div>
-      <div class="input-wrap"><label>Distancia (km)</label><input type="number" inputmode="decimal" step="0.01" class="inp" id="ed-distancia"></div>
+      <div class="input-wrap"><label>Distancia (km)</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="ed-distancia"></div>
     </div>
     <div class="row2">
-      <div class="input-wrap"><label>Calorías</label><input type="number" inputmode="numeric" class="inp" id="ed-calorias"></div>
-      <div class="input-wrap"><label>FC media (ppm)</label><input type="number" inputmode="numeric" class="inp" id="ed-fc"></div>
+      <div class="input-wrap"><label>Calorías</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="ed-calorias"></div>
+      <div class="input-wrap"><label>FC media (ppm)</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="ed-fc"></div>
     </div>
     <div id="ed-bici-extra" style="display:none;">
       <div class="row2">
-        <div class="input-wrap"><label>Vatios medios</label><input type="number" inputmode="numeric" class="inp" id="ed-vatios"></div>
+        <div class="input-wrap"><label>Vatios medios</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="ed-vatios"></div>
         <div class="input-wrap"><label>Entreno Zwift</label><input type="text" class="inp" id="ed-zwift"></div>
       </div>
     </div>
@@ -770,7 +789,70 @@ function showToast(msg, icon = '✓') {
   document.body.appendChild(t); setTimeout(() => t.remove(), 2500);
 }
 const openModal = id => $(id).classList.remove('hidden');
-const closeModal = id => $(id).classList.add('hidden');
+const closeModal = id => { $(id).classList.add('hidden'); if (S.kp) cerrarTeclado(); };
+
+// ── Teclado numérico propio: números grandes y tecla → para pasar a la siguiente casilla ──
+const KP_GRUPOS = [
+  { ids: ['rg-pasos', 'rg-kg', 'rg-kc', 'rg-peso'] },
+  { ids: ['pl-input', 'pl-kg', 'pl-kc'], fin: () => pasosLoteIr(-1) }, // último dato del día → día anterior
+  { ids: ['act-distancia', 'act-calorias', 'act-fc', 'act-vatios'] },
+  { ids: ['ed-distancia', 'ed-calorias', 'ed-fc', 'ed-vatios'] },
+  { ids: ['nuevo-peso', 'comp-grasa', 'comp-musculo'], fin: () => { cerrarTeclado(); guardarPeso(); } },
+  { ids: ['peso-objetivo'] }, { ids: ['obj-km'] }
+];
+// Casillas con decimales (cuántos admite); el resto, números enteros
+const KP_DEC = { 'rg-peso': 1, 'nuevo-peso': 1, 'comp-grasa': 1, 'comp-musculo': 1, 'peso-objetivo': 1, 'act-distancia': 2, 'ed-distancia': 2 };
+const numCampo = id => num(getCampo(id).replace(',', '.'));
+function getCampo(id) { return $(id).dataset.raw ?? ''; } // valor sin puntos de miles; el peso con coma decimal
+function setCampo(id, v) {
+  const el = $(id), dec = id in KP_DEC;
+  let raw = v == null ? '' : String(v);
+  if (dec) raw = raw.replace('.', ',');
+  el.dataset.raw = raw;
+  el.value = raw === '' ? '' : dec ? raw : fmtN(Number(raw));
+}
+const kpGrupo = id => KP_GRUPOS.find(g => g.ids.includes(id));
+function activarCampo(id) {
+  const kp = $('teclado'), caja = $(id).closest('.modal-overlay') || document.body; // dentro de la ventana abierta o de la pantalla
+  document.querySelectorAll('.kp-in.kp-act').forEach(e => e.classList.remove('kp-act'));
+  document.querySelectorAll('.kp-on').forEach(e => e !== caja && e.classList.remove('kp-on'));
+  $(id).classList.add('kp-act'); S.kp = id;
+  if (kp.parentNode !== caja) caja.appendChild(kp);
+  kp.classList.remove('hidden'); caja.classList.add('kp-on');
+  $('kp-coma').style.visibility = id in KP_DEC ? 'visible' : 'hidden';
+  setTimeout(() => $(id).scrollIntoView({ block: 'center', behavior: 'smooth' }), 30);
+}
+function cerrarTeclado() {
+  $('teclado').classList.add('hidden');
+  document.querySelectorAll('.kp-on').forEach(e => e.classList.remove('kp-on'));
+  document.querySelectorAll('.kp-act').forEach(e => e.classList.remove('kp-act'));
+  S.kp = null;
+}
+function kpTecla(k) {
+  const id = S.kp;
+  if (!id) return;
+  if (k === 'sig') return kpSiguiente();
+  if (k === 'ok') return cerrarTeclado();
+  const dec = KP_DEC[id] || 0;
+  let raw = getCampo(id);
+  if (k === 'del') raw = raw.slice(0, -1);
+  else if (k === 'C') raw = '';
+  else if (k === ',') { if (!dec || raw.includes(',')) return; raw = (raw || '0') + ','; }
+  else {
+    if (dec) { const [ent, d] = raw.split(','); if (d != null ? d.length >= dec : ent.length >= 3) return; } // hasta 3 cifras y sus decimales
+    else if (raw.length >= 6) return;
+    raw = raw === '0' ? k : raw + k;
+  }
+  setCampo(id, raw);
+  $(id).dispatchEvent(new Event('input'));
+}
+function kpSiguiente() {
+  const id = S.kp, g = kpGrupo(id);
+  const sig = g.ids.slice(g.ids.indexOf(id) + 1).find(x => $(x).offsetParent !== null); // salta casillas ocultas (vatios si no es bici)
+  if (sig) return activarCampo(sig);
+  if (g.fin) return g.fin();
+  cerrarTeclado();
+}
 
 // Espera a Firebase como mucho `ms`; si no contesta, avisa en vez de quedarse colgado en silencio
 function conTiempo(promesa, ms = 12000) {
@@ -918,6 +1000,7 @@ function statsRango(desde, hasta) {
 // NAVEGACIÓN
 // ════════════════════════════════════════
 function goTo(pantalla, btn) {
+  if (S.kp) cerrarTeclado();
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
   $('screen-' + pantalla).classList.add('active');
@@ -1115,23 +1198,24 @@ function abrirRegistro() {
   const hoy = hoyStr(), ayer = addDias(hoy, -1), e = estadoDia(ayer), v = x => (x == null ? '' : x);
   S.rg = { dia: ayer, cerv: e.cerv };
   $('rg-titulo').textContent = 'Ayer · ' + fmtFechaLarga(ayer);
-  $('rg-pasos').value = v(e.pasos); $('rg-kg').value = v(e.g); $('rg-kc').value = v(e.c); $('rg-peso').value = v(e.peso);
+  setCampo('rg-pasos', e.pasos); setCampo('rg-kg', e.g); setCampo('rg-kc', e.c); setCampo('rg-peso', e.peso);
   $('rg-cerv-row').style.display = ayer >= DESDE_CERVEZA ? '' : 'none';
   const ult = S.data.pesos.find(p => p.fecha < hoy);
   $('rg-peso-ult').textContent = ult ? `Opcional · último: ${fmtKg(ult.kg)} kg (${fmtFecha(ult.fecha)})` : 'Opcional';
   rgPintar();
   openModal('modal-registro');
-  setTimeout(() => { const id = ['rg-pasos', 'rg-kg', 'rg-kc'].find(x => !$(x).value); if (id) $(id).focus(); }, 50);
+  cerrarTeclado();
+  setTimeout(() => { const id = ['rg-pasos', 'rg-kg', 'rg-kc'].find(x => !getCampo(x)); if (id) activarCampo(id); }, 60);
 }
 function rgPintar() {
   $('rg-no').classList.toggle('on', !S.rg.cerv); $('rg-si').classList.toggle('on', S.rg.cerv);
-  const b = txtBalance(num($('rg-kg').value), num($('rg-kc').value));
+  const b = txtBalance(num(getCampo('rg-kg')), num(getCampo('rg-kc')));
   $('rg-bal').textContent = 'Balance del día: ' + (b || 'rellena las dos calorías');
 }
 function rgCerv(si) { S.rg.cerv = si; rgPintar(); }
 async function guardarRegistro() {
   const f = S.rg.dia, hoy = hoyStr(), e = estadoDia(f);
-  const leer = (id, min, max) => { const t = $(id).value.trim().replace(',', '.'); if (t === '') return null; const n = parseFloat(t); return isNaN(n) || n < min || n > max ? NaN : n; };
+  const leer = (id, min, max) => { const t = getCampo(id).trim().replace(',', '.'); if (t === '') return null; const n = parseFloat(t); return isNaN(n) || n < min || n > max ? NaN : n; };
   const p = leer('rg-pasos', 0, 100000), g = leer('rg-kg', 0, 10000), c = leer('rg-kc', 0, 10000), kg = leer('rg-peso', 30, 300);
   if (Number.isNaN(p)) return showToast('Pasos no válidos (0 a 100.000)', '⚠️');
   if (Number.isNaN(g) || Number.isNaN(c)) return showToast('Calorías no válidas (0 a 10.000)', '⚠️');
@@ -1187,7 +1271,7 @@ async function toggleFuerzaHoy() {
 
 // ── Pasos de varios días: se teclean uno a uno y se guardan todos de golpe ──
 function pasosLoteGuardarActual() {
-  const f = S.pl.dia, v = $('pl-input').value.trim();
+  const f = S.pl.dia, v = getCampo('pl-input').trim();
   const guardado = S.data.pasos[f];
   if (v === '') delete S.pl.borr[f];
   else {
@@ -1196,7 +1280,7 @@ function pasosLoteGuardarActual() {
     if (n === guardado) delete S.pl.borr[f]; else S.pl.borr[f] = n;
   }
   // Calorías: un campo vacío deja ese dato como estaba
-  const lee = id => { const t = $(id).value.trim(); if (t === '') return null; const n = parseInt(t); return isNaN(n) || n < 0 || n > 10000 ? NaN : n; };
+  const lee = id => { const t = getCampo(id).trim(); if (t === '') return null; const n = parseInt(t); return isNaN(n) || n < 0 || n > 10000 ? NaN : n; };
   const g = lee('pl-kg'), c = lee('pl-kc');
   if (Number.isNaN(g) || Number.isNaN(c)) { showToast('Calorías no válidas (0 a 10.000)', '⚠️'); return false; }
   const k = S.data.kcal[f] || {}, ng = g ?? k.g ?? null, nc = c ?? k.c ?? null;
@@ -1207,9 +1291,9 @@ function pasosLotePintar() {
   const f = S.pl.dia, hoy = hoyStr();
   $('pl-fecha').value = f; $('pl-fecha').max = hoy;
   const g = S.data.pasos[f];
-  $('pl-input').value = f in S.pl.borr ? S.pl.borr[f] : (g != null ? g : '');
+  setCampo('pl-input', f in S.pl.borr ? S.pl.borr[f] : g);
   const kp = S.pl.kc[f] || S.data.kcal[f] || {};
-  $('pl-kg').value = kp.g ?? ''; $('pl-kc').value = kp.c ?? '';
+  setCampo('pl-kg', kp.g); setCampo('pl-kc', kp.c);
   $('pl-estado').textContent = (f in S.pl.borr || f in S.pl.kc) ? 'Pendiente de guardar' : (g != null ? 'Ya guardado: ' + fmtN(g) + ' pasos' : 'Sin registrar');
   $('pl-sig').disabled = f >= hoy; $('pl-sig').style.opacity = f >= hoy ? '.35' : '1';
   const tomo = f in S.pl.cerv ? S.pl.cerv[f] : S.data.cerv.has(f), ok = f >= DESDE_CERVEZA;
@@ -1226,7 +1310,7 @@ function pasosLoteFechaElegida() {
   if (!v || v > hoyStr()) { pasosLotePintar(); return; }
   if (!pasosLoteGuardarActual()) { pasosLotePintar(); return; }
   S.pl.dia = v; pasosLotePintar();
-  $('pl-input').focus(); $('pl-input').select();
+  activarCampo('pl-input');
 }
 function plCerv(si) {
   const f = S.pl.dia;
@@ -1239,7 +1323,7 @@ function abrirPasosLote() {
   pasosLotePintar();
   openModal('modal-pasos');
   $('pl-fecha').onchange = pasosLoteFechaElegida;
-  setTimeout(() => $('pl-input').focus(), 50);
+  setTimeout(() => activarCampo('pl-input'), 60);
 }
 function pasosLoteIr(delta) {
   if (!pasosLoteGuardarActual()) return;
@@ -1247,7 +1331,7 @@ function pasosLoteIr(delta) {
   if (nuevo > hoyStr()) return;
   S.pl.dia = nuevo;
   pasosLotePintar();
-  $('pl-input').focus(); $('pl-input').select();
+  activarCampo('pl-input');
 }
 async function guardarPasosLote() {
   if (!pasosLoteGuardarActual()) return;
@@ -1318,15 +1402,15 @@ async function guardarActividad() {
   const fecha = leerFechaSel('fs-act');
   const dato = {
     fecha, tipo: S.tipo, duracion,
-    distancia: num($('act-distancia').value),
-    calorias: num($('act-calorias').value),
-    fc_media: num($('act-fc').value),
+    distancia: numCampo('act-distancia'),
+    calorias: numCampo('act-calorias'),
+    fc_media: numCampo('act-fc'),
     dolor_rodilla: $('act-dolor-rodilla').value === '' ? null : parseInt($('act-dolor-rodilla').value),
     dolor_pie: $('act-dolor-pie').value === '' ? null : parseInt($('act-dolor-pie').value),
     notas: $('act-notas').value.trim() || null
   };
   if (S.tipo === 'bici') {
-    dato.vatios = num($('act-vatios').value);
+    dato.vatios = numCampo('act-vatios');
     dato.zwift = $('act-zwift').value.trim() || null;
   }
   Object.keys(dato).forEach(k => dato[k] === null && delete dato[k]);
@@ -1334,7 +1418,8 @@ async function guardarActividad() {
   $('act-guardar').disabled = true;
   try {
     await window._fb.add('actividades', dato);
-    ['act-distancia','act-calorias','act-fc','act-vatios','act-zwift','act-notas'].forEach(id => $(id).value = '');
+    ['act-distancia','act-calorias','act-fc','act-vatios'].forEach(id => setCampo(id, ''));
+    ['act-zwift','act-notas'].forEach(id => $(id).value = '');
     $('act-dolor-rodilla').value = '0'; $('act-dolor-pie').value = '0';
     montarDurSel('ds-act', DUR_HABITUAL);
     montarFechaSel('fs-act', hoyStr());
@@ -1360,9 +1445,9 @@ function abrirEditar(col, id) {
   }
   montarFechaSel('fs-ed', a.fecha);
   const v = x => (x == null ? '' : x);
-  montarDurSel('ds-ed', a.duracion); $('ed-distancia').value = v(a.distancia);
-  $('ed-calorias').value = v(a.calorias); $('ed-fc').value = v(a.fc_media);
-  $('ed-vatios').value = v(a.vatios); $('ed-zwift').value = v(a.zwift);
+  montarDurSel('ds-ed', a.duracion); setCampo('ed-distancia', a.distancia);
+  setCampo('ed-calorias', a.calorias); setCampo('ed-fc', a.fc_media);
+  setCampo('ed-vatios', a.vatios); $('ed-zwift').value = v(a.zwift);
   $('ed-dolor-rodilla').value = v(a.dolor_rodilla); $('ed-dolor-pie').value = v(a.dolor_pie);
   $('ed-notas').value = v(a.notas);
   edTipoCambia();
@@ -1392,12 +1477,12 @@ async function guardarEdicion() {
   const tipo = $('ed-tipo').value;
   const dato = {
     fecha: leerFechaSel('fs-ed'), tipo, duracion,
-    distancia: num($('ed-distancia').value), calorias: num($('ed-calorias').value), fc_media: num($('ed-fc').value),
+    distancia: numCampo('ed-distancia'), calorias: numCampo('ed-calorias'), fc_media: numCampo('ed-fc'),
     dolor_rodilla: $('ed-dolor-rodilla').value === '' ? null : parseInt($('ed-dolor-rodilla').value),
     dolor_pie: $('ed-dolor-pie').value === '' ? null : parseInt($('ed-dolor-pie').value),
     notas: $('ed-notas').value.trim() || null
   };
-  if (tipo === 'bici') { dato.vatios = num($('ed-vatios').value); dato.zwift = $('ed-zwift').value.trim() || null; }
+  if (tipo === 'bici') { dato.vatios = numCampo('ed-vatios'); dato.zwift = $('ed-zwift').value.trim() || null; }
   Object.keys(dato).forEach(k => dato[k] === null && delete dato[k]);
 
   $('ed-guardar').disabled = true;
@@ -1488,7 +1573,7 @@ function planTexto(P) {
 function renderPeso() {
   const pesos = S.data.pesos;
   montarFechaSel('fs-peso', hoyStr());
-  if (S.objPeso && document.activeElement !== $('peso-objetivo')) $('peso-objetivo').value = S.objPeso;
+  if (S.objPeso && S.kp !== 'peso-objetivo') setCampo('peso-objetivo', S.objPeso);
   if (document.activeElement !== $('peso-obj-fecha')) $('peso-obj-fecha').value = S.objFecha;
   $('peso-plan').innerHTML = '';
 
@@ -1535,8 +1620,8 @@ function renderPeso() {
 }
 
 async function guardarPeso() {
-  const kg = num($('nuevo-peso').value);
-  const grasa = num($('comp-grasa').value), musculo = num($('comp-musculo').value);
+  const kg = numCampo('nuevo-peso');
+  const grasa = numCampo('comp-grasa'), musculo = numCampo('comp-musculo');
   const fecha = leerFechaSel('fs-peso');
   if (kg === null && grasa === null && musculo === null) { showToast('Introduce al menos un dato', '⚠️'); return; }
   if (kg !== null && (kg < 30 || kg > 300)) { showToast('Introduce un peso válido', '⚠️'); return; }
@@ -1557,7 +1642,7 @@ async function guardarPeso() {
       if (m != null) dato.musculo_pct = m;
       await window._fb.save('composicion', fecha, dato);
     }
-    $('nuevo-peso').value = ''; $('comp-grasa').value = ''; $('comp-musculo').value = '';
+    setCampo('nuevo-peso', ''); setCampo('comp-grasa', ''); setCampo('comp-musculo', '');
     showToast('Datos guardados', '⚖️');
     await refrescar();
   } catch (e) { errorFb(e, 'guardar'); }
@@ -1568,7 +1653,7 @@ async function borrarPeso(id) {
   catch (e) { errorFb(e, 'borrar'); }
 }
 async function guardarObjetivoPeso() {
-  const kg = num($('peso-objetivo').value), f = $('peso-obj-fecha').value;
+  const kg = numCampo('peso-objetivo'), f = $('peso-obj-fecha').value;
   if (!kg || kg < 30 || kg > 300) { showToast('Peso objetivo no válido', '⚠️'); return; }
   if (!f || f <= hoyStr()) { showToast('Elige una fecha futura', '⚠️'); return; }
   try {
@@ -1687,7 +1772,7 @@ function renderStats() {
       { data: kms, backgroundColor: cv('--e1'), borderColor: cv('--ink'), borderWidth: 1, borderRadius: 6 } ] },
     options: { responsive: true, maintainAspectRatio: false, plugins: { legend: { display: false } }, scales: { x: ejes, y: { ...ejes, beginAtZero: true } } }
   });
-  if (document.activeElement !== $('obj-km')) $('obj-km').value = S.objKm;
+  if (S.kp !== 'obj-km') setCampo('obj-km', S.objKm);
 
   // Bici
   const bici = S.data.acts.filter(a => a.tipo === 'bici');
@@ -1907,7 +1992,7 @@ async function confirmarImport() {
 }
 
 async function guardarObjetivoKm() {
-  const v = num($('obj-km').value);
+  const v = numCampo('obj-km');
   if (!v || v <= 0) return;
   try { await window._fb.save('config', 'objetivo_km_semana', { valor: v }); showToast(`Objetivo: ${v} km/semana`, '🎯'); await refrescar(); }
   catch (e) { errorFb(e, 'guardar'); }
@@ -2093,16 +2178,17 @@ async function iniciar() {
     e.preventDefault();
     if (k < ids.length - 1) { $(ids[k + 1]).focus(); $(ids[k + 1]).select?.(); } else fin();
   });
-  cadena(['pl-input', 'pl-kg', 'pl-kc'], () => pasosLoteIr(-1));
-  cadena(['rg-pasos', 'rg-kg', 'rg-kc', 'rg-peso'], () => $('rg-peso').blur());
-  ['rg-kg', 'rg-kc'].forEach(id => $(id).oninput = rgPintar);
-  const ordenPeso = ['nuevo-peso', 'comp-grasa', 'comp-musculo'];
-  ordenPeso.forEach((id, k) => $(id).onkeydown = e => {
-    if (e.key !== 'Enter') return;
+  document.addEventListener('keydown', e => {
+    if (!S.kp) return;
+    if (/^[0-9]$/.test(e.key)) kpTecla(e.key);
+    else if (e.key === 'Backspace') kpTecla('del');
+    else if (e.key === ',' || e.key === '.') kpTecla(',');
+    else if (e.key === 'Enter' || e.key === 'Tab') { e.preventDefault(); kpTecla('sig'); }
+    else if (e.key === 'Escape') cerrarTeclado();
+    else return;
     e.preventDefault();
-    if (k < ordenPeso.length - 1) $(ordenPeso[k + 1]).focus();
-    else { $(id).blur(); guardarPeso(); }
   });
+  ['rg-kg', 'rg-kc'].forEach(id => $(id).oninput = rgPintar);
   document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.add('hidden'); }));
   renderActividad();
   try {
