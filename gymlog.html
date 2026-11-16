@@ -678,7 +678,7 @@ body.kp-on { padding-bottom:300px; }
       <div class="input-wrap"><label>🔥 Kcal gastadas</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="pl-kg" placeholder="—"></div>
       <div class="input-wrap"><label>🍽️ Kcal consumidas</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="pl-kc" placeholder="—"></div>
     </div>
-    <div class="hoy-fila" id="pl-cerv-row" style="margin:0 0 12px;"><div style="font-weight:600; font-size:13px;">🍺 Cerveza ese día</div><div class="pill" id="pl-pill"><button id="pl-no" onclick="plCerv(false)">Sin cerveza</button><button id="pl-si" onclick="plCerv(true)">Bebí</button></div></div>
+    <div class="hoy-fila" id="pl-cerv-row" style="margin:0 0 12px;"><div style="font-weight:600; font-size:13px;">🍺 Cerveza ese día</div><div class="pill" id="pl-pill"><button type="button" id="pl-no" onclick="event.stopPropagation(); plCerv(false)">Sin cerveza</button><button type="button" id="pl-si" onclick="event.stopPropagation(); plCerv(true)">Bebí</button></div></div>
     <div style="font-size:12px; color:var(--txt2); margin:-4px 0 12px; text-align:center;">Toca la fecha para elegir otro día, o usa ‹ ›. La tecla → pasa al siguiente dato y, en el último, al día anterior. Nada se guarda hasta que pulses "Guardar todo".</div>
     <div id="pl-pend" style="font-size:12px; color:var(--txt2); line-height:1.7; text-align:center; margin-bottom:12px;"></div>
     <div style="display:flex; gap:10px;">
@@ -704,11 +704,11 @@ body.kp-on { padding-bottom:300px; }
     <div class="reg-row"><div class="l">🔥 Kcal gastadas<small>Total del día (reloj)</small></div><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="rg-kg" placeholder="—"></div>
     <div class="reg-row"><div class="l">🍽️ Kcal consumidas<small>Lo que comiste</small></div><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="rg-kc" placeholder="—"></div>
     <div class="reg-bal" id="rg-bal"></div>
-    <div class="reg-row" id="rg-cerv-row"><div class="l">🍺 Cerveza</div><div class="pill"><button id="rg-no" onclick="rgCerv(false)">Sin cerveza</button><button id="rg-si" onclick="rgCerv(true)">Bebí</button></div></div>
+    <div class="reg-row" id="rg-cerv-row"><div class="l">🍺 Cerveza</div><div class="pill"><button type="button" id="rg-no" onclick="event.stopPropagation(); rgCerv(false)">Sin cerveza</button><button type="button" id="rg-si" onclick="event.stopPropagation(); rgCerv(true)">Bebí</button></div></div>
     <div class="reg-sec">Hoy</div>
     <div class="reg-row" style="border-bottom:none;"><div class="l">⚖️ Peso de hoy<small id="rg-peso-ult">Opcional</small></div><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="rg-peso" placeholder="kg"></div>
     <div style="display:flex; gap:10px; margin-top:14px;">
-      <button class="btn btn-ghost" onclick="closeModal('modal-registro')">Cancelar</button>
+      <button class="btn btn-ghost" onclick="S.rgBorr = null; closeModal('modal-registro')">Cancelar</button>
       <button class="btn btn-primary" id="rg-guardar" onclick="guardarRegistro()">Guardar todo</button>
     </div>
   </div>
@@ -845,6 +845,7 @@ function kpTecla(k) {
   }
   setCampo(id, raw);
   $(id).dispatchEvent(new Event('input'));
+  if (id.startsWith('rg-')) rgGuardarBorrador();
 }
 function kpSiguiente() {
   const id = S.kp, g = kpGrupo(id);
@@ -1196,9 +1197,10 @@ function pintarRegistro() {
 }
 function abrirRegistro() {
   const hoy = hoyStr(), ayer = addDias(hoy, -1), e = estadoDia(ayer), v = x => (x == null ? '' : x);
-  S.rg = { dia: ayer, cerv: e.cerv };
+  const bo = S.rgBorr && S.rgBorr.dia === ayer ? S.rgBorr : null; // lo que escribiste y aún no has guardado
+  S.rg = { dia: ayer, cerv: bo ? bo.cerv : e.cerv };
   $('rg-titulo').textContent = 'Ayer · ' + fmtFechaLarga(ayer);
-  setCampo('rg-pasos', e.pasos); setCampo('rg-kg', e.g); setCampo('rg-kc', e.c); setCampo('rg-peso', e.peso);
+  setCampo('rg-pasos', bo ? bo.pasos : e.pasos); setCampo('rg-kg', bo ? bo.g : e.g); setCampo('rg-kc', bo ? bo.c : e.c); setCampo('rg-peso', bo ? bo.peso : e.peso);
   $('rg-cerv-row').style.display = ayer >= DESDE_CERVEZA ? '' : 'none';
   const ult = S.data.pesos.find(p => p.fecha < hoy);
   $('rg-peso-ult').textContent = ult ? `Opcional · último: ${fmtKg(ult.kg)} kg (${fmtFecha(ult.fecha)})` : 'Opcional';
@@ -1207,7 +1209,12 @@ function abrirRegistro() {
   cerrarTeclado();
   setTimeout(() => { const id = ['rg-pasos', 'rg-kg', 'rg-kc'].find(x => !getCampo(x)); if (id) activarCampo(id); }, 60);
 }
+function rgGuardarBorrador() {
+  if (!S.rg) return;
+  S.rgBorr = { dia: S.rg.dia, cerv: S.rg.cerv, pasos: getCampo('rg-pasos'), g: getCampo('rg-kg'), c: getCampo('rg-kc'), peso: getCampo('rg-peso') };
+}
 function rgPintar() {
+  rgGuardarBorrador();
   $('rg-no').classList.toggle('on', !S.rg.cerv); $('rg-si').classList.toggle('on', S.rg.cerv);
   const b = txtBalance(num(getCampo('rg-kg')), num(getCampo('rg-kc')));
   $('rg-bal').textContent = 'Balance del día: ' + (b || 'rellena las dos calorías');
@@ -1233,10 +1240,11 @@ async function guardarRegistro() {
     const ex = S.data.pesos.find(x => x.fecha === hoy), d = { fecha: hoy, kg: r1(kg), fuente: 'huawei' }; // un único peso por día
     T.push(() => ex ? window._fb.save('pesos', ex.id, d) : window._fb.add('pesos', d));
   }
-  if (!T.length) { closeModal('modal-registro'); showToast('Sin cambios', 'ℹ️'); return; }
+  if (!T.length) { S.rgBorr = null; closeModal('modal-registro'); showToast('Sin cambios', 'ℹ️'); return; }
   $('rg-guardar').disabled = true; $('rg-guardar').textContent = 'Guardando…';
   try {
     await conTiempo(Promise.all(T.map(t => t())));
+    S.rgBorr = null;
     closeModal('modal-registro');
     showToast('Registro guardado', '📝');
     await refrescar();
@@ -1315,8 +1323,10 @@ function pasosLoteFechaElegida() {
 function plCerv(si) {
   const f = S.pl.dia;
   if (f < DESDE_CERVEZA) return;
+  if (!pasosLoteGuardarActual()) return; // primero se quedan apuntados los números escritos, para no perderlos al repintar
   if (si === S.data.cerv.has(f)) delete S.pl.cerv[f]; else S.pl.cerv[f] = si;
   pasosLotePintar();
+  if (S.kp) activarCampo(S.kp);
 }
 function abrirPasosLote() {
   S.pl = { dia: addDias(hoyStr(), -2), borr: {}, cerv: {}, kc: {} };
@@ -2189,7 +2199,11 @@ async function iniciar() {
     e.preventDefault();
   });
   ['rg-kg', 'rg-kc'].forEach(id => $(id).oninput = rgPintar);
-  document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => { if (e.target === m) m.classList.add('hidden'); }));
+  document.querySelectorAll('.modal-overlay').forEach(m => m.addEventListener('click', e => {
+    if (e.target !== m) return;
+    if (m.id === 'modal-registro' || m.id === 'modal-pasos') { if (S.kp) cerrarTeclado(); return; } // con datos a medio meter, solo se cierra con Cancelar/Guardar
+    m.classList.add('hidden');
+  }));
   renderActividad();
   try {
     await cargarTodo();
