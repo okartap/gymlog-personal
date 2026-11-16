@@ -315,6 +315,8 @@ body.kp-on { padding-bottom:300px; }
 .kp-in.kp-act { border-color:var(--ink); box-shadow:0 0 0 1px var(--ink); }
 .peso-plan { margin-top:12px; padding-top:12px; border-top:1px solid var(--border); font-size:12px; color:var(--txt2); line-height:1.7; }
 .peso-plan b { color:var(--txt); }
+.tdee-box { text-align:center; }
+.tdee-box .hoy-tiny { color:var(--txt2); }
 </style>
 </head>
 <body>
@@ -353,6 +355,7 @@ body.kp-on { padding-bottom:300px; }
       </div>
       <div class="chips" id="reg-chips"></div>
       <div class="hoy-tiny" id="reg-bal" style="margin:-2px 0 10px;"></div>
+      <div class="hoy-tiny" id="tdee-hoy" style="margin:-2px 0 10px;"></div>
       <button class="btn btn-primary" id="reg-btn" onclick="abrirRegistro()">Completar registro</button>
       <button class="btn btn-ghost" id="reg-res" style="margin-top:8px; display:none;" onclick="abrirResumenDia()">📋 Resumen del día para Claude</button>
       <div class="hoy-fila" style="margin-top:10px;">
@@ -475,8 +478,10 @@ body.kp-on { padding-bottom:300px; }
       </div>
     </div>
 
+    <div class="card" id="tdee-peso"></div>
+
     <div class="card">
-      <div style="font-weight:600; margin-bottom:8px;">Peso y tendencia (últimos 30 registros)</div>
+      <div style="font-weight:600; margin-bottom:8px;">Peso y tendencia (historial completo)</div>
       <div class="chart-wrap"><canvas id="peso-chart"></canvas></div>
     </div>
 
@@ -904,7 +909,7 @@ function fmtDur(min) {
 // ESTADO Y CARGA DE DATOS
 // ════════════════════════════════════════
 // Objetivo de peso por defecto (acordado el 2/11/2026): 70 kg para el 1/6/2027; el plan arranca con el primer pesaje desde el 2/11/2026
-const OBJ_PESO_DEF = 70, OBJ_FECHA_DEF = '2027-06-01', PLAN_DESDE = '2026-11-02';
+const OBJ_PESO_DEF = 70, OBJ_FECHA_DEF = '2027-06-01', PLAN_DESDE = '2026-11-17';
 // Fuerza: meta semanal y fecha desde la que el calendario distingue día completo (cardio + fuerza) de medio día
 const OBJ_FUERZA = 4, DESDE_FUERZA = '2026-11-09';
 // Números con punto de miles también en cifras de 4 dígitos (2.480)
@@ -1191,6 +1196,8 @@ function pintarRegistro() {
   ].join('');
   const bal = txtBalance(e.g, e.c);
   $('reg-bal').textContent = bal || ''; $('reg-bal').style.display = bal ? '' : 'none';
+  const tdee = tdeeTexto(calcTDEE(), true);
+  $('tdee-hoy').textContent = tdee || ''; $('tdee-hoy').style.display = tdee ? '' : 'none';
   $('reg-btn').textContent = completo ? 'Editar registro' : 'Completar registro';
   $('reg-btn').className = 'btn ' + (completo ? 'btn-ghost' : 'btn-primary');
   $('reg-res').style.display = completo ? '' : 'none';
@@ -1562,6 +1569,51 @@ function planPeso() {
   const llegada = faltan > 0 && bajada > 0.02 ? addDias(ult.fecha, Math.round(faltan / bajada * 7)) : null;
   return { ini, ult, actual, obj, fObj, faltan, ritmoNec, bajada, llegada };
 }
+// Gasto energético real (TDEE dinámico): compara tendencia real de peso vs. kcal consumidas
+// en una ventana de 21 días, para corregir el error del reloj. Necesita al menos 14 días con
+// peso y 10 con kcal consumidas registradas en la ventana para dar un número fiable.
+const TDEE_DIAS = 21, TDEE_MIN_PESO = 14, TDEE_MIN_KCAL = 10;
+function calcTDEE() {
+  const hoy = hoyStr(), desde = addDias(hoy, -TDEE_DIAS), hasta = addDias(hoy, -1);
+  const pesosV = S.data.pesos.filter(p => p.fecha >= desde && p.fecha <= hasta);
+  let sumaC = 0, nC = 0, sumaG = 0, nG = 0;
+  for (let f = desde; f <= hasta; f = addDias(f, 1)) {
+    const k = S.data.kcal[f];
+    if (k && k.c != null) { sumaC += k.c; nC++; }
+    if (k && k.g != null) { sumaG += k.g; nG++; }
+  }
+  if (pesosV.length < TDEE_MIN_PESO || nC < TDEE_MIN_KCAL) return { calibrando: true, diasPeso: pesosV.length, diasKcal: nC };
+  const xs = pesosV.map(p => (parseISO(p.fecha) - parseISO(hasta)) / 864e5), ys = pesosV.map(p => p.kg);
+  const mx = media(xs), my = media(ys); let sxy = 0, sxx = 0;
+  xs.forEach((x, i) => { sxy += (x - mx) * (ys[i] - my); sxx += (x - mx) ** 2; });
+  if (sxx === 0) return { calibrando: true, diasPeso: pesosV.length, diasKcal: nC };
+  const bajada = -(sxy / sxx) * 7; // kg/semana reales (positivo = bajando)
+  const avgC = sumaC / nC, avgG = nG ? sumaG / nG : null;
+  const real = avgC + bajada * 7700 / 7; // kcal/día reales
+  let objetivoKcal = null;
+  const P = planPeso();
+  if (P && P.faltan > 0) objetivoKcal = real - P.ritmoNec * 7700 / 7;
+  return { calibrando: false, real, reloj: avgG, objetivoKcal, bajada, avgC, diasPeso: pesosV.length, diasKcal: nC };
+}
+function tdeeTexto(T, corto) {
+  if (!T) return '';
+  if (T.calibrando) {
+    if (corto) return null;
+    return `<div class="tdee-box"><div style="font-weight:600;">🔥 Gasto energético real</div><div class="hoy-tiny" style="margin-top:4px;">Calibrando… peso ${T.diasPeso}/${TDEE_MIN_PESO} días · calorías ${T.diasKcal}/${TDEE_MIN_KCAL} días</div><div class="hoy-tiny">Sigue registrando peso y calorías a diario.</div></div>`;
+  }
+  const diffReloj = T.reloj != null ? Math.round(T.real - T.reloj) : null;
+  const relojTxt = T.reloj != null ? ` (reloj: ${fmtN(T.reloj)} kcal${diffReloj != null ? ', ' + (diffReloj >= 0 ? '+' : '') + fmtN(diffReloj) : ''})` : '';
+  if (corto) {
+    let t = `Gasto real: ${fmtN(T.real)} kcal${relojTxt}`;
+    if (T.objetivoKcal != null) t += ` · Objetivo hoy: ${fmtN(T.objetivoKcal)} kcal`;
+    return t;
+  }
+  const L = [`<div style="font-weight:600;">🔥 Gasto energético real (${TDEE_DIAS} días)</div>`];
+  L.push(`<div style="font-family:'DM Mono',monospace; font-size:20px; margin-top:4px;">${fmtN(T.real)} kcal/día</div>`);
+  if (T.reloj != null) L.push(`<div class="hoy-tiny">Reloj dice: ${fmtN(T.reloj)} kcal/día${diffReloj != null ? ` (${diffReloj >= 0 ? '+' : ''}${fmtN(diffReloj)})` : ''}</div>`);
+  if (T.objetivoKcal != null) L.push(`<div class="hoy-tiny" style="margin-top:6px;">Para llegar a ${fmtKg(S.objPeso)} kg el ${fmtFechaAnio(S.objFecha)}:<br>→ come ${fmtN(T.objetivoKcal)} kcal/día</div>`);
+  return `<div class="tdee-box">${L.join('')}</div>`;
+}
 function planEn(P, f) {
   const tot = (parseISO(P.fObj) - parseISO(P.ini.fecha)) / 864e5;
   if (tot <= 0) return P.obj;
@@ -1586,6 +1638,7 @@ function renderPeso() {
   if (S.objPeso && S.kp !== 'peso-objetivo') setCampo('peso-objetivo', S.objPeso);
   if (document.activeElement !== $('peso-obj-fecha')) $('peso-obj-fecha').value = S.objFecha;
   $('peso-plan').innerHTML = '';
+  $('tdee-peso').innerHTML = '';
 
   if (pesos.length) {
     const ultimo = pesos[0], P = planPeso();
@@ -1601,6 +1654,7 @@ function renderPeso() {
     $('peso-prog').style.width = (total > 0 ? Math.min(100, Math.max(0, hecho / total * 100)) : 0) + '%';
     $('peso-obj-lbl').textContent = `Objetivo: ${fmtKg(P.obj)} kg`;
     $('peso-plan').innerHTML = planTexto(P).map(esc).join('<br>');
+    $('tdee-peso').innerHTML = tdeeTexto(calcTDEE(), false);
 
     $('peso-historial').innerHTML = pesos.slice(0, 15).map(p => `
       <div class="row-item">
@@ -1611,7 +1665,7 @@ function renderPeso() {
         </div>
       </div>`).join('');
 
-    const rec = pesos.slice(0, 30).reverse();
+    const rec = pesos.slice().reverse();
     pintarLinea('peso', 'peso-chart', rec.map(p => p.fecha.slice(5)), [
       { label: 'Peso', data: rec.map(p => p.kg), borderColor: cv('--e1'), backgroundColor: cv('--sel'), fill: true, borderWidth: 1.5 },
       { label: 'Media 7 días', data: rec.map(p => { const m = mediaPesoHasta(pesos, p.fecha); return m == null ? null : r1(m); }), borderColor: cv('--ink'), backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0 },
@@ -2116,6 +2170,10 @@ function generarResumen() {
     L.push('PESO: ' + (pesos.filter(x => x.fecha >= addDias(hoy, -14)).slice().reverse().map(x => `${fmtFecha(x.fecha)} ${fmtKg(x.kg)} kg`).join(' · ') || 'sin pesajes en las últimas 2 semanas'));
     planTexto(planPeso()).forEach(x => L.push('  ' + x));
   } else L.push('PESO: sin registros');
+  { const T = calcTDEE();
+    if (T.calibrando) L.push(`GASTO REAL ESTIMADO: calibrando (peso ${T.diasPeso}/${TDEE_MIN_PESO} días · calorías ${T.diasKcal}/${TDEE_MIN_KCAL} días)`);
+    else { L.push(`GASTO REAL ESTIMADO: ${fmtN(T.real)} kcal/día` + (T.reloj != null ? ` (reloj: ${fmtN(T.reloj)})` : ''));
+      if (T.objetivoKcal != null) L.push(`OBJETIVO KCAL SUGERIDO: ${fmtN(T.objetivoKcal)} kcal/día`); } }
   const c = S.data.comp[0], c2 = S.data.comp[1];
   if (c) L.push(`COMPOSICIÓN (${c.fecha}): grasa ${c.grasa_pct ?? 'sin datos'} % · músculo ${c.musculo_pct ?? 'sin datos'} %` + (c2 ? ` · registro anterior (${c2.fecha}): grasa ${c2.grasa_pct ?? 'sin datos'} % · músculo ${c2.musculo_pct ?? 'sin datos'} %` : ''));
   L.push('');
@@ -2151,6 +2209,11 @@ function generarResumenDia() {
   L.push(`PESO HOY: ${e.peso != null ? fmtKg(e.peso) + ' kg' : 'sin pesar'}`);
   const P = planPeso();
   if (P) planTexto(P).forEach(x => L.push(x));
+  const T = calcTDEE();
+  if (!T.calibrando) {
+    L.push(`GASTO REAL ESTIMADO: ${fmtN(T.real)} kcal/día` + (T.reloj != null ? ` (reloj: ${fmtN(T.reloj)})` : ''));
+    if (T.objetivoKcal != null) L.push(`OBJETIVO KCAL SUGERIDO: ${fmtN(T.objetivoKcal)} kcal/día`);
+  }
   L.push('');
   L.push('Coméntame este día brevemente: qué ha ido bien y qué ajustar hoy.');
   return L.join('\n');
