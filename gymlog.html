@@ -347,6 +347,8 @@ body.kp-on { padding-bottom:300px; }
 .empty { padding:10px; }
 #peso-historial .row-item { flex-direction:row; justify-content:space-between; padding:6px 0; }
 #cal-dias, #cal-grid { max-width:280px; gap:3px !important; }
+.pv-seg { margin-bottom:6px; gap:4px; }
+.pv-seg button { padding:4px 10px; font-size:11px; }
 .cal-card .leyenda { margin-top:6px; gap:4px 10px; }
 .cal-card .rc.cal { max-width:34px; margin:0 auto; padding:3px; }
 .cal-card .rc.cal .ri { font-size:12px; }
@@ -512,8 +514,24 @@ body.kp-on { padding-bottom:300px; }
     </div>
 
     <div class="card">
-      <div style="font-weight:600; margin-bottom:8px;">Peso y tendencia (historial completo)</div>
-      <div class="chart-wrap" style="height:240px;"><canvas id="peso-chart"></canvas></div>
+      <div style="font-weight:600; margin-bottom:8px;">Peso y tendencia</div>
+      <div class="seg pv-seg">
+        <button id="pv-r0" onclick="pesoVista('rango', 0)">Inicio</button>
+        <button id="pv-r90" onclick="pesoVista('rango', 90)">90 días</button>
+        <button id="pv-r30" onclick="pesoVista('rango', 30)">30 días</button>
+        <button id="pv-r10" onclick="pesoVista('rango', 10)">10 días</button>
+      </div>
+      <div class="seg pv-seg">
+        <button id="pv-dinicio" onclick="pesoVista('desde', 'inicio')">Desde inicio</button>
+        <button id="pv-dplan" onclick="pesoVista('desde', 'plan')">Desde el plan</button>
+        <button id="pv-media" onclick="pesoVista('media')">Media 7d</button>
+      </div>
+      <div class="chart-wrap" style="height:220px;"><canvas id="peso-chart"></canvas></div>
+    </div>
+
+    <div id="comp-wrap" style="display:none;">
+      <div class="sec-label">Composición</div>
+      <div class="card"><div class="chart-wrap"><canvas id="comp-chart"></canvas></div></div>
     </div>
 
 
@@ -1653,6 +1671,37 @@ function planTexto(P) {
   return L;
 }
 
+// Selectores de la gráfica de peso; se recuerda la última elección en este dispositivo
+function leerPesoVista() {
+  let v = {};
+  try { v = JSON.parse(localStorage.getItem('pesoVista') || '{}') || {}; } catch (e) {}
+  return { rango: [0, 90, 30, 10].includes(v.rango) ? v.rango : 0, desde: v.desde === 'plan' ? 'plan' : 'inicio', media: v.media === true };
+}
+function pesoVista(clave, valor) {
+  const v = leerPesoVista();
+  if (clave === 'media') v.media = !v.media; else v[clave] = valor;
+  try { localStorage.setItem('pesoVista', JSON.stringify(v)); } catch (e) {}
+  renderPeso();
+}
+// Gráfica aparte de composición: los últimos valores y su cambio van marcados en la leyenda
+function renderComposicion() {
+  const comp = (S.data.comp || []).filter(c => c.grasa_pct != null || c.musculo_pct != null);
+  $('comp-wrap').style.display = comp.length ? 'block' : 'none';
+  if (!comp.length) return;
+  const u = comp[0], a = comp[1];
+  const etiqueta = (nombre, act, prev) => {
+    if (act == null) return nombre;
+    let t = `${nombre} ${fmtKg(act)}%`;
+    if (prev != null) { const d = r1(act - prev); t += d === 0 ? ' (=)' : ` (${d > 0 ? '↑' : '↓'}${fmtKg(Math.abs(d))})`; }
+    return t;
+  };
+  const rec = comp.slice(0, 12).reverse();
+  pintarLinea('comp', 'comp-chart', rec.map(c => c.fecha.slice(5)), [
+    { label: etiqueta('Grasa', u.grasa_pct, a?.grasa_pct), data: rec.map(c => c.grasa_pct ?? null), borderColor: cv('--ink'), backgroundColor: 'transparent', spanGaps: true },
+    { label: etiqueta('Músculo', u.musculo_pct, a?.musculo_pct), data: rec.map(c => c.musculo_pct ?? null), borderColor: cv('--e1'), backgroundColor: 'transparent', spanGaps: true }
+  ], true);
+}
+
 function renderPeso() {
   const pesos = S.data.pesos;
   if (S.objPeso && S.kp !== 'peso-objetivo') setCampo('peso-objetivo', S.objPeso);
@@ -1686,31 +1735,28 @@ function renderPeso() {
         </div>
       </div>`).join('');
 
-    // Eje X: todas las fechas con peso o con composición (grasa/músculo van en escala % a la derecha)
-    const comp = S.data.comp || [];
-    const porPeso = {}, porComp = {};
+    // Gráfica de peso con selectores: rango (Inicio/90/30/10 días), desde (inicio del historial o del plan) y media 7 días
+    const V = leerPesoVista();
+    ['0', '90', '30', '10'].forEach(k => $('pv-r' + k).classList.toggle('on', String(V.rango) === k));
+    $('pv-dinicio').classList.toggle('on', V.desde === 'inicio');
+    $('pv-dplan').classList.toggle('on', V.desde === 'plan');
+    $('pv-media').classList.toggle('on', V.media);
+    const porPeso = {};
     pesos.forEach(p => { if (!(p.fecha in porPeso)) porPeso[p.fecha] = p.kg; });
-    comp.forEach(c => { if (!(c.fecha in porComp)) porComp[c.fecha] = c; });
-    let fechas = [...new Set([...Object.keys(porPeso), ...Object.keys(porComp)])].sort();
-    // Empieza tras el último hueco de más de 30 días, para que un registro suelto antiguo no deje la gráfica vacía
+    let fechas = Object.keys(porPeso).sort();
+    // Sin límite de rango, empieza tras el último hueco de más de 30 días (un registro suelto antiguo no deja la gráfica vacía)
     let corte = 0;
     for (let i = 1; i < fechas.length; i++) if ((parseISO(fechas[i]) - parseISO(fechas[i - 1])) / 864e5 > 30) corte = i;
-    fechas = fechas.slice(corte);
-    const hayComp = comp.some(c => c.grasa_pct != null || c.musculo_pct != null);
+    let inicio = fechas[corte] || hoyStr();
+    if (V.rango) { const r = addDias(hoyStr(), -(V.rango - 1)); if (r > inicio) inicio = r; }
+    if (V.desde === 'plan' && P.ini.fecha > inicio) inicio = P.ini.fecha;
+    fechas = fechas.filter(f => f >= inicio);
     const series = [
-      { label: 'Peso', data: fechas.map(f => porPeso[f] ?? null), borderColor: cv('--e1'), backgroundColor: cv('--sel'), fill: true, borderWidth: 1.5, spanGaps: true },
-      { label: 'Media 7 días', data: fechas.map(f => { if (!(f in porPeso)) return null; const m = mediaPesoHasta(pesos, f); return m == null ? null : r1(m); }), borderColor: cv('--ink'), backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0, spanGaps: true },
-      { label: 'Plan', data: fechas.map(f => f >= P.ini.fecha ? r1(planEn(P, f)) : null), borderColor: cv('--sc'), backgroundColor: 'transparent', borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0, spanGaps: true }
+      { label: 'Peso', data: fechas.map(f => porPeso[f]), borderColor: cv('--e1'), backgroundColor: cv('--sel'), fill: true, borderWidth: 1.5 }
     ];
-    let escalaPct = {};
-    if (hayComp) {
-      series.push(
-        { label: '% Grasa', data: fechas.map(f => porComp[f]?.grasa_pct ?? null), borderColor: '#d98c4a', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 3, spanGaps: true, yAxisID: 'y2' },
-        { label: '% Músculo', data: fechas.map(f => porComp[f]?.musculo_pct ?? null), borderColor: '#5b9bd5', backgroundColor: 'transparent', borderWidth: 1.5, pointRadius: 3, spanGaps: true, yAxisID: 'y2' }
-      );
-      escalaPct = { y2: { position: 'right', grid: { drawOnChartArea: false }, ticks: { ...ejes.ticks, callback: v => v + '%' } } };
-    }
-    pintarLinea('peso', 'peso-chart', fechas.map(f => f.slice(5)), series, true, escalaPct);
+    if (V.media) series.push({ label: 'Media 7 días', data: fechas.map(f => { const m = mediaPesoHasta(pesos, f); return m == null ? null : r1(m); }), borderColor: cv('--ink'), backgroundColor: 'transparent', borderWidth: 3, pointRadius: 0 });
+    series.push({ label: 'Plan', data: fechas.map(f => f >= P.ini.fecha ? r1(planEn(P, f)) : null), borderColor: cv('--sc'), backgroundColor: 'transparent', borderDash: [5, 4], borderWidth: 1.5, pointRadius: 0, spanGaps: true });
+    pintarLinea('peso', 'peso-chart', fechas.map(f => f.slice(5)), series, true);
 
     const t = mediaPesoHasta(pesos, ultimo.fecha), tAnt = mediaPesoHasta(pesos, addDias(ultimo.fecha, -7));
     let txtTend = `Tendencia (media 7 días): <strong style="color:var(--txt)">${r1(t)} kg</strong>`;
@@ -1720,6 +1766,7 @@ function renderPeso() {
     }
     $('peso-tend').innerHTML = txtTend;
   }
+  renderComposicion();
 }
 
 async function guardarPeso() {
