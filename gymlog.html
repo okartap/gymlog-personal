@@ -918,12 +918,13 @@ function leerFechaSel(id) {
 }
 
 // Duración: selectores horas / minutos / segundos (se guarda en minutos, con decimales para los segundos)
-const DUR_HABITUAL = 98.5; // 1:38:30, duración habitual de un entreno nuevo
+// Sin minutos (entreno nuevo) los tres selectores salen en blanco ("— h") hasta que se elige un valor
 function montarDurSel(id, minutos) {
-  const tot = Math.round((minutos || 0) * 60), h = Math.floor(tot / 3600), m = Math.floor(tot % 3600 / 60), sg = tot % 60;
-  const opc = (n, suf) => Array.from({ length: n }, (_, i) => `<option value="${i}">${i} ${suf}</option>`).join('');
+  const opc = (n, suf) => `<option value="">— ${suf}</option>` + Array.from({ length: n }, (_, i) => `<option value="${i}">${i} ${suf}</option>`).join('');
   $(id).innerHTML = `<select class="inp">${opc(24, 'h')}</select><select class="inp">${opc(60, 'min')}</select><select class="inp">${opc(60, 's')}</select>`;
   const [sh, sm, ss] = $(id).querySelectorAll('select');
+  if (minutos == null) { sh.value = sm.value = ss.value = ''; return; }
+  const tot = Math.round(minutos * 60), h = Math.floor(tot / 3600), m = Math.floor(tot % 3600 / 60), sg = tot % 60;
   sh.value = h; sm.value = m; ss.value = sg;
 }
 function leerDurSel(id) {
@@ -1414,9 +1415,9 @@ function renderActividad() {
   if (!$('act-dolor-rodilla').options.length) {
     $('act-dolor-rodilla').innerHTML = opcionesDolor();
     $('act-dolor-pie').innerHTML = opcionesDolor();
-    $('act-dolor-rodilla').value = '0'; $('act-dolor-pie').value = '0';
+    $('act-dolor-rodilla').value = ''; $('act-dolor-pie').value = '';
   }
-  if (!$('ds-act').children.length) montarDurSel('ds-act', DUR_HABITUAL);
+  if (!$('ds-act').children.length) montarDurSel('ds-act', null);
   montarFechaSel('fs-act', hoyStr());
   montarFechaSel('fs-peso', hoyStr());
 }
@@ -1469,8 +1470,8 @@ async function guardarActividad() {
     await window._fb.add('actividades', dato);
     ['act-distancia','act-calorias','act-fc','act-vatios'].forEach(id => setCampo(id, ''));
     ['act-zwift','act-notas'].forEach(id => $(id).value = '');
-    $('act-dolor-rodilla').value = '0'; $('act-dolor-pie').value = '0';
-    montarDurSel('ds-act', DUR_HABITUAL);
+    $('act-dolor-rodilla').value = ''; $('act-dolor-pie').value = '';
+    montarDurSel('ds-act', null);
     montarFechaSel('fs-act', hoyStr());
     showToast('Actividad guardada', S.tipo === 'bici' ? '🚴' : '🚶');
     await refrescar();
