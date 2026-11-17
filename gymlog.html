@@ -347,6 +347,7 @@ body.kp-on { padding-bottom:300px; }
 .empty { padding:10px; }
 #peso-historial .row-item { flex-direction:row; justify-content:space-between; padding:6px 0; }
 #cal-dias, #cal-grid { max-width:280px; gap:3px !important; }
+.inp.vacio { color:var(--txt3); }
 .pv-seg { margin-bottom:6px; gap:4px; }
 .pv-seg button { padding:4px 10px; font-size:11px; }
 .cal-card .leyenda { margin-top:6px; gap:4px 10px; }
@@ -918,14 +919,27 @@ function leerFechaSel(id) {
 }
 
 // Duración: selectores horas / minutos / segundos (se guarda en minutos, con decimales para los segundos)
-// Sin minutos (entreno nuevo) los tres selectores salen en blanco ("— h") hasta que se elige un valor
+// Sin minutos (entreno nuevo) los tres selectores salen en blanco y atenuados ("— h"). Al tocar
+// cualquiera de ellos se preselecciona la duración habitual (1:37:30), y el selector ya se abre ahí.
+const DUR_HABITUAL = 97.5; // 1:37:30
+function marcarVacio(sel) { sel.classList.toggle('vacio', sel.value === ''); }
 function montarDurSel(id, minutos) {
   const opc = (n, suf) => `<option value="">— ${suf}</option>` + Array.from({ length: n }, (_, i) => `<option value="${i}">${i} ${suf}</option>`).join('');
   $(id).innerHTML = `<select class="inp">${opc(24, 'h')}</select><select class="inp">${opc(60, 'min')}</select><select class="inp">${opc(60, 's')}</select>`;
-  const [sh, sm, ss] = $(id).querySelectorAll('select');
-  if (minutos == null) { sh.value = sm.value = ss.value = ''; return; }
-  const tot = Math.round(minutos * 60), h = Math.floor(tot / 3600), m = Math.floor(tot % 3600 / 60), sg = tot % 60;
-  sh.value = h; sm.value = m; ss.value = sg;
+  const sels = [...$(id).querySelectorAll('select')], [sh, sm, ss] = sels;
+  const poner = min => {
+    const tot = Math.round(min * 60);
+    sh.value = Math.floor(tot / 3600); sm.value = Math.floor(tot % 3600 / 60); ss.value = tot % 60;
+  };
+  const preseleccionar = () => { if (sels.every(s => s.value === '')) { poner(DUR_HABITUAL); sels.forEach(marcarVacio); } };
+  sels.forEach(s => {
+    s.addEventListener('pointerdown', preseleccionar);
+    s.addEventListener('focus', preseleccionar);
+    s.addEventListener('change', () => marcarVacio(s));
+  });
+  if (minutos == null) sh.value = sm.value = ss.value = '';
+  else poner(minutos);
+  sels.forEach(marcarVacio);
 }
 function leerDurSel(id) {
   const [sh, sm, ss] = $(id).querySelectorAll('select');
@@ -1415,7 +1429,8 @@ function renderActividad() {
   if (!$('act-dolor-rodilla').options.length) {
     $('act-dolor-rodilla').innerHTML = opcionesDolor();
     $('act-dolor-pie').innerHTML = opcionesDolor();
-    $('act-dolor-rodilla').value = ''; $('act-dolor-pie').value = '';
+    ['act-dolor-rodilla', 'act-dolor-pie'].forEach(id => $(id).addEventListener('change', () => marcarVacio($(id))));
+    $('act-dolor-rodilla').value = ''; $('act-dolor-pie').value = ''; marcarVacio($('act-dolor-rodilla')); marcarVacio($('act-dolor-pie'));
   }
   if (!$('ds-act').children.length) montarDurSel('ds-act', null);
   montarFechaSel('fs-act', hoyStr());
@@ -1470,7 +1485,7 @@ async function guardarActividad() {
     await window._fb.add('actividades', dato);
     ['act-distancia','act-calorias','act-fc','act-vatios'].forEach(id => setCampo(id, ''));
     ['act-zwift','act-notas'].forEach(id => $(id).value = '');
-    $('act-dolor-rodilla').value = ''; $('act-dolor-pie').value = '';
+    $('act-dolor-rodilla').value = ''; $('act-dolor-pie').value = ''; marcarVacio($('act-dolor-rodilla')); marcarVacio($('act-dolor-pie'));
     montarDurSel('ds-act', null);
     montarFechaSel('fs-act', hoyStr());
     showToast('Actividad guardada', S.tipo === 'bici' ? '🚴' : '🚶');
