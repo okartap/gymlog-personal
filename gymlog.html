@@ -318,6 +318,34 @@ body.kp-on { padding-bottom:300px; }
 .peso-plan b { color:var(--txt); }
 .tdee-box { text-align:center; }
 .tdee-box .hoy-tiny { color:var(--txt2); }
+
+/* ── Diseño compacto (opción B): menos huecos en toda la app ── */
+.page-header { padding:calc(env(safe-area-inset-top) + 18px) 16px 8px; gap:6px; }
+.page-title { font-size:24px; }
+.card { padding:10px 12px; margin:0 12px 8px; border-radius:12px; }
+.grid2 { margin:0 12px 8px; gap:8px; }
+.stat-card { padding:10px 12px; border-radius:12px; }
+.sec-label { padding:8px 16px 4px; }
+.input-wrap { margin-bottom:8px; }
+.input-wrap label { font-size:11px; margin-bottom:3px; }
+.inp { padding:7px 8px; border-radius:8px; font-size:16px; }
+.fecha-in { min-height:34px; }
+.fecha-sel { gap:6px; }
+.fecha-sel select.inp { padding:7px 4px; }
+.row2 { gap:6px; }
+.row3 { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:6px; }
+.btn { padding:9px 16px; border-radius:10px; }
+.btn-sm { padding:6px 12px; }
+.row-item { padding:8px 0; gap:4px; }
+.tipo-grid { margin:0 12px 8px; gap:6px; }
+.tipo-btn { padding:7px 4px; border-radius:10px; display:flex; align-items:center; justify-content:center; gap:6px; }
+.tipo-btn .ico { font-size:16px; margin:0; }
+.sem-card { padding:10px 12px; }
+.sem-grid { margin-top:8px; padding-top:8px; }
+.hoy-c { padding:10px 12px; margin-bottom:8px; }
+.peso-plan { margin-top:8px; padding-top:8px; }
+.empty { padding:10px; }
+#peso-historial .row-item { flex-direction:row; justify-content:space-between; padding:6px 0; }
 </style>
 </head>
 <body>
@@ -405,14 +433,13 @@ body.kp-on { padding-bottom:300px; }
 
     <div class="sec-label">Peso y composición</div>
     <div class="card">
-      <div class="input-wrap"><label>Fecha</label><div class="fecha-sel" id="fs-peso"></div></div>
-      <div class="input-wrap"><label>Peso (kg)</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="nuevo-peso"></div>
-      <div class="row2">
+      <div class="input-wrap"><div class="fecha-sel" id="fs-peso"></div></div>
+      <div class="row3">
+        <div class="input-wrap"><label>Peso kg</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="nuevo-peso"></div>
         <div class="input-wrap"><label>% Grasa</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="comp-grasa"></div>
         <div class="input-wrap"><label>% Músculo</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="comp-musculo"></div>
       </div>
       <button class="btn btn-primary" onclick="guardarPeso()">Guardar</button>
-      <div style="font-size:12px; color:var(--txt3); margin-top:8px;">Puedes rellenar solo el peso, o los tres datos. La tecla → pasa al siguiente dato y, en el último, guarda.</div>
     </div>
 
     <div class="sec-label">Entreno</div>
@@ -423,39 +450,27 @@ body.kp-on { padding-bottom:300px; }
     </div>
 
     <div class="card">
-      <div class="input-wrap">
-        <label>Fecha del entreno</label>
-        <div class="fecha-sel" id="fs-act"></div>
-      </div>
-      <div id="act-fz-nota" class="hoy-tiny" style="display:none; margin:-4px 0 14px;">La fuerza solo se marca como hecha: elige el día y guarda.</div>
+      <div class="input-wrap"><div class="fecha-sel" id="fs-act"></div></div>
+      <div id="act-fz-nota" class="hoy-tiny" style="display:none; margin:-2px 0 8px;">La fuerza solo se marca como hecha: elige el día y guarda.</div>
       <div id="act-cardio">
-      <div class="input-wrap"><label>Duración (horas · minutos · segundos)</label><div class="fecha-sel dur-sel" id="ds-act"></div></div>
-      <div class="row2">
-        <div class="input-wrap"><label>Distancia (km)</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="act-distancia"></div>
-        <div class="input-wrap"><label>Calorías</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="act-calorias"></div>
+      <div class="input-wrap"><label>Duración</label><div class="fecha-sel dur-sel" id="ds-act"></div></div>
+      <div class="row3">
+        <div class="input-wrap"><label>Km</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="act-distancia"></div>
+        <div class="input-wrap"><label>Kcal</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="act-calorias"></div>
+        <div class="input-wrap"><label>FC media</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="act-fc"></div>
       </div>
-      <div class="input-wrap"><label>FC media (ppm)</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="act-fc"></div>
 
       <div id="act-bici-extra" style="display:none;">
         <div class="row2">
-          <div class="input-wrap"><label>Vatios medios</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="act-vatios"></div>
-          <div class="input-wrap"><label>Entreno Zwift</label><input type="text" class="inp" id="act-zwift" placeholder="Nombre del programa"></div>
+          <div class="input-wrap"><label>Vatios</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="act-vatios"></div>
+          <div class="input-wrap"><label>Entreno Zwift</label><input type="text" class="inp" id="act-zwift" placeholder="Programa"></div>
         </div>
       </div>
 
-      <div class="row2">
-        <div class="input-wrap">
-          <label>Dolor rodilla izq. (0-10)</label>
-          <select class="inp" id="act-dolor-rodilla"></select>
-        </div>
-        <div class="input-wrap">
-          <label>Dolor pie dcho. (0-10)</label>
-          <select class="inp" id="act-dolor-pie"></select>
-        </div>
-      </div>
-      <div class="input-wrap">
-        <label>Notas (opcional)</label>
-        <input type="text" class="inp" id="act-notas" placeholder="Ruta, sensaciones...">
+      <div class="row3">
+        <div class="input-wrap"><label>Rodilla izq.</label><select class="inp" id="act-dolor-rodilla"></select></div>
+        <div class="input-wrap"><label>Pie dcho.</label><select class="inp" id="act-dolor-pie"></select></div>
+        <div class="input-wrap"><label>Notas</label><input type="text" class="inp" id="act-notas" placeholder="Ruta…"></div>
       </div>
       </div>
       <button class="btn btn-green" id="act-guardar" onclick="guardarActividad()">Guardar actividad</button>
