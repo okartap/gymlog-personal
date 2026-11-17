@@ -346,6 +346,10 @@ body.kp-on { padding-bottom:300px; }
 .peso-plan { margin-top:8px; padding-top:8px; }
 .empty { padding:10px; }
 #peso-historial .row-item { flex-direction:row; justify-content:space-between; padding:6px 0; }
+#cal-dias, #cal-grid { max-width:280px; gap:3px !important; }
+.cal-card .leyenda { margin-top:6px; gap:4px 10px; }
+.cal-card .rc.cal { max-width:34px; margin:0 auto; padding:3px; }
+.cal-card .rc.cal .ri { font-size:12px; }
 </style>
 </head>
 <body>
@@ -569,8 +573,8 @@ body.kp-on { padding-bottom:300px; }
     </div>
 
     <div class="sec-label">📆 Calendario de hábito</div>
-    <div class="card" style="padding:16px;">
-      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:14px;">
+    <div class="card cal-card">
+      <div style="display:flex; align-items:center; justify-content:space-between; margin-bottom:4px;">
         <button onclick="calendarioMes(-1)" style="background:none; border:none; color:var(--txt2); cursor:pointer; font-size:22px; padding:4px 10px;">‹</button>
         <div style="text-align:center;">
           <div id="cal-titulo" style="font-weight:600; font-size:15px;"></div>
@@ -587,7 +591,6 @@ body.kp-on { padding-bottom:300px; }
         <span><i style="background:var(--bg2); border:2px solid var(--ink); width:7px; height:7px;"></i>Día con bici</span>
         <span><i style="background:var(--sc);"></i>Día sin cerveza</span>
       </div>
-      <div id="cal-nota" style="margin-top:10px; font-size:11px; color:var(--txt3);">Desde el 9 de noviembre, el círculo se rellena entero si haces cardio (caminata o bici) y fuerza el mismo día, y por la mitad si haces solo una. Antes de esa fecha, cualquier entreno lo rellena entero. El anillo se completa al llegar a 10.000 pasos.</div>
     </div>
 
     <div class="sec-label">🚶 Km caminados por semana</div>
