@@ -304,6 +304,7 @@ body { text-align:center; }
 /* teclado numérico propio (como el de Numbers) */
 .teclado { position:fixed; left:0; right:0; bottom:0; z-index:260; display:grid; grid-template-columns:repeat(4,1fr); gap:8px; padding:10px 10px calc(14px + env(safe-area-inset-bottom)); background:var(--bg); border-top:1px solid var(--border); animation:slideUp .2s ease; }
 .teclado.hidden { display:none; }
+.peso-detalle.hidden { display:none; }
 .teclado button { height:52px; border:none; border-radius:12px; background:var(--bg3); color:var(--txt); font-size:25px; font-family:'DM Sans',sans-serif; touch-action:manipulation; -webkit-tap-highlight-color:transparent; cursor:pointer; }
 .teclado button:active { opacity:.55; }
 .teclado .kp-g { background:var(--bg2); color:var(--txt2); font-size:21px; }
@@ -372,10 +373,6 @@ body.kp-on { padding-bottom:300px; }
       <button class="btn btn-ghost" id="fz-btn" style="margin-top:10px;" onclick="toggleFuerzaHoy()">💪 Marcar fuerza de hoy como hecha</button>
     </div>
 
-    <div style="padding:0 16px; margin-bottom:12px;">
-      <button class="btn btn-green" onclick="irAActividad()">＋ Registrar actividad</button>
-    </div>
-
     <div class="sec-label">Caminata esta semana</div>
     <div class="card sem-card">
       <div class="sem-km"><span id="sem-km">0</span><small>km de <span id="sem-obj">75</span></small></div>
@@ -400,12 +397,25 @@ body.kp-on { padding-bottom:300px; }
   <div id="screen-actividad" class="screen">
     <div class="page-header">
       <div>
-        <div class="page-title">Actividad</div>
-        <div class="page-sub">Caminata · Bici · Fuerza</div>
+        <div class="page-title">Datos</div>
+        <div class="page-sub">Peso · Composición · Entreno</div>
       </div>
       <button class="btn btn-sm btn-ghost" onclick="abrirHistorial()">Historial</button>
     </div>
 
+    <div class="sec-label">Peso y composición</div>
+    <div class="card">
+      <div class="input-wrap"><label>Fecha</label><div class="fecha-sel" id="fs-peso"></div></div>
+      <div class="input-wrap"><label>Peso (kg)</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="nuevo-peso"></div>
+      <div class="row2">
+        <div class="input-wrap"><label>% Grasa</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="comp-grasa"></div>
+        <div class="input-wrap"><label>% Músculo</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="comp-musculo"></div>
+      </div>
+      <button class="btn btn-primary" onclick="guardarPeso()">Guardar</button>
+      <div style="font-size:12px; color:var(--txt3); margin-top:8px;">Puedes rellenar solo el peso, o los tres datos. La tecla → pasa al siguiente dato y, en el último, guarda.</div>
+    </div>
+
+    <div class="sec-label">Entreno</div>
     <div class="tipo-grid">
       <div class="tipo-btn selected" id="tipo-caminar" onclick="elegirTipo('caminar')"><div class="ico">🚶</div>Caminar</div>
       <div class="tipo-btn" id="tipo-bici" onclick="elegirTipo('bici')"><div class="ico">🚴</div>Bici (Zwift)</div>
@@ -461,13 +471,17 @@ body.kp-on { padding-bottom:300px; }
       </div>
     </div>
 
-    <div class="grid2" style="margin-bottom:12px;">
-      <div class="stat-card" style="grid-column:span 2;">
-        <div style="display:flex; align-items:baseline; gap:8px; margin-bottom:4px;">
+    <div class="card">
+      <div style="display:flex; align-items:center; justify-content:center; gap:8px; text-align:center;">
+        <span id="peso-resumen-corto" class="stat-sub">Sin registros de peso todavía</span>
+        <button class="del-btn" id="peso-info-btn" onclick="toggleDetallePeso()" title="Ver detalle" aria-label="Ver detalle">ⓘ</button>
+      </div>
+      <div id="peso-detalle" class="peso-detalle hidden" style="margin-top:12px;">
+        <div style="display:flex; align-items:baseline; gap:8px; justify-content:center;">
           <div class="stat-val" id="peso-actual">—</div><div class="stat-unit">kg</div>
-          <div id="peso-delta" style="margin-left:auto;"></div>
+          <div id="peso-delta"></div>
         </div>
-        <div class="stat-lbl">Último registro</div>
+        <div class="stat-lbl" style="text-align:center;">Último registro</div>
         <div class="prog-bar"><div class="prog-fill green" id="peso-prog" style="width:0%"></div></div>
         <div style="display:flex; justify-content:center; gap:16px; margin-top:6px;">
           <span style="font-size:11px; color:var(--txt3)" id="peso-inicio-lbl">—</span>
@@ -478,23 +492,9 @@ body.kp-on { padding-bottom:300px; }
       </div>
     </div>
 
-    <div class="card" id="tdee-peso"></div>
-
     <div class="card">
       <div style="font-weight:600; margin-bottom:8px;">Peso y tendencia (historial completo)</div>
       <div class="chart-wrap"><canvas id="peso-chart"></canvas></div>
-    </div>
-
-    <div class="sec-label">Registrar peso y composición</div>
-    <div class="card">
-      <div class="input-wrap"><label>Fecha</label><div class="fecha-sel" id="fs-peso"></div></div>
-      <div class="input-wrap"><label>Peso (kg)</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="nuevo-peso"></div>
-      <div class="row2">
-        <div class="input-wrap"><label>% Grasa</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="comp-grasa"></div>
-        <div class="input-wrap"><label>% Músculo</label><input type="text" readonly inputmode="none" class="inp kp-in" onclick="activarCampo(this.id)" id="comp-musculo"></div>
-      </div>
-      <button class="btn btn-primary" onclick="guardarPeso()">Guardar</button>
-      <div style="font-size:12px; color:var(--txt3); margin-top:8px;">Puedes rellenar solo el peso, o los tres datos. La tecla → pasa al siguiente dato y, en el último, guarda.</div>
     </div>
 
     <div id="comp-resumen-wrap" style="display:none;">
@@ -504,6 +504,8 @@ body.kp-on { padding-bottom:300px; }
         <div class="chart-wrap"><canvas id="comp-chart"></canvas></div>
       </div>
     </div>
+
+    <div class="card" id="tdee-peso"></div>
 
     <div class="sec-label">Historial de peso</div>
     <div class="card" id="peso-historial"><div class="empty">Sin registros</div></div>
@@ -645,7 +647,7 @@ body.kp-on { padding-bottom:300px; }
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><path d="M3 9l9-7 9 7v11a2 2 0 01-2 2H5a2 2 0 01-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>Hoy
   </button>
   <button class="nav-btn" onclick="goTo('actividad', this)">
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Actividad
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><polyline points="22 12 18 12 15 21 9 3 6 12 2 12"/></svg>Datos
   </button>
   <button class="nav-btn" onclick="goTo('peso', this)">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor"><circle cx="12" cy="12" r="10"/><path d="M12 6v6l4 2"/></svg>Peso
@@ -1387,6 +1389,7 @@ function renderActividad() {
   }
   if (!$('ds-act').children.length) montarDurSel('ds-act', DUR_HABITUAL);
   montarFechaSel('fs-act', hoyStr());
+  montarFechaSel('fs-peso', hoyStr());
 }
 function elegirTipo(t) {
   S.tipo = t;
@@ -1619,6 +1622,13 @@ function planEn(P, f) {
   if (tot <= 0) return P.obj;
   return P.ini.kg + (P.obj - P.ini.kg) * Math.min(1, (parseISO(f) - parseISO(P.ini.fecha)) / 864e5 / tot);
 }
+function planResumenCorto(P) {
+  if (P.faltan <= 0) return '¡Objetivo alcanzado! 🎉';
+  return `Faltan ${fmtKg(P.faltan)} kg · ritmo necesario ${fmtKg2(P.ritmoNec)} kg/semana`;
+}
+function toggleDetallePeso() {
+  $('peso-detalle').classList.toggle('hidden');
+}
 function planTexto(P) {
   const L = [`Objetivo: ${fmtKg(P.obj)} kg para el ${fmtFechaAnio(P.fObj)} · inicio del plan ${fmtKg(P.ini.kg)} kg (${fmtFecha(P.ini.fecha)}) · ahora ${fmtKg(P.actual)} kg (media de la última semana)`];
   if (P.faltan <= 0) { L.push('¡Objetivo alcanzado! 🎉'); return L; }
@@ -1634,7 +1644,6 @@ function planTexto(P) {
 
 function renderPeso() {
   const pesos = S.data.pesos;
-  montarFechaSel('fs-peso', hoyStr());
   if (S.objPeso && S.kp !== 'peso-objetivo') setCampo('peso-objetivo', S.objPeso);
   if (document.activeElement !== $('peso-obj-fecha')) $('peso-obj-fecha').value = S.objFecha;
   $('peso-plan').innerHTML = '';
@@ -1642,6 +1651,7 @@ function renderPeso() {
 
   if (pesos.length) {
     const ultimo = pesos[0], P = planPeso();
+    $('peso-resumen-corto').textContent = planResumenCorto(P);
     $('peso-actual').textContent = ultimo.kg;
     if (pesos.length > 1) {
       const diff = r1(ultimo.kg - pesos[1].kg);
