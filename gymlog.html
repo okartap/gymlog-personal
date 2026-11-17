@@ -373,6 +373,9 @@ body.kp-on { padding-bottom:300px; }
       <button class="btn btn-ghost" id="fz-btn" style="margin-top:10px;" onclick="toggleFuerzaHoy()">💪 Marcar fuerza de hoy como hecha</button>
     </div>
 
+    <div class="sec-label">Actividad de hoy</div>
+    <div class="card lista" id="hoy-lista"><div class="empty">Sin actividad registrada hoy</div></div>
+
     <div class="sec-label">Caminata esta semana</div>
     <div class="card sem-card">
       <div class="sem-km"><span id="sem-km">0</span><small>km de <span id="sem-obj">75</span></small></div>
@@ -385,9 +388,6 @@ body.kp-on { padding-bottom:300px; }
         <div><b id="sem-bici">0</b><span>Km bici</span></div>
       </div>
     </div>
-
-    <div class="sec-label">Actividad de hoy</div>
-    <div class="card lista" id="hoy-lista"><div class="empty">Sin actividad registrada hoy</div></div>
 
     <div class="sec-label">Últimas actividades</div>
     <div class="card lista" id="hoy-recientes"><div class="empty">Sin actividades</div></div>
@@ -476,13 +476,13 @@ body.kp-on { padding-bottom:300px; }
         <span id="peso-resumen-corto" class="stat-sub">Sin registros de peso todavía</span>
         <button class="del-btn" id="peso-info-btn" onclick="toggleDetallePeso()" title="Ver detalle" aria-label="Ver detalle">ⓘ</button>
       </div>
+      <div class="prog-bar" style="margin-top:10px;"><div class="prog-fill green" id="peso-prog" style="width:0%"></div></div>
       <div id="peso-detalle" class="peso-detalle hidden" style="margin-top:12px;">
         <div style="display:flex; align-items:baseline; gap:8px; justify-content:center;">
           <div class="stat-val" id="peso-actual">—</div><div class="stat-unit">kg</div>
           <div id="peso-delta"></div>
         </div>
         <div class="stat-lbl" style="text-align:center;">Último registro</div>
-        <div class="prog-bar"><div class="prog-fill green" id="peso-prog" style="width:0%"></div></div>
         <div style="display:flex; justify-content:center; gap:16px; margin-top:6px;">
           <span style="font-size:11px; color:var(--txt3)" id="peso-inicio-lbl">—</span>
           <span style="font-size:11px; color:var(--txt3)" id="peso-obj-lbl">Objetivo: —</span>
@@ -497,18 +497,11 @@ body.kp-on { padding-bottom:300px; }
       <div class="chart-wrap"><canvas id="peso-chart"></canvas></div>
     </div>
 
-    <div id="comp-resumen-wrap" style="display:none;">
-      <div class="sec-label">Evolución composición</div>
-      <div class="card" id="comp-resumen"></div>
-      <div class="card" id="comp-chart-card" style="display:none;">
-        <div class="chart-wrap"><canvas id="comp-chart"></canvas></div>
-      </div>
+    <div id="comp-resumen-wrap" class="card" style="display:none;">
+      <div id="comp-resumen"></div>
     </div>
 
     <div class="card" id="tdee-peso"></div>
-
-    <div class="sec-label">Historial de peso</div>
-    <div class="card" id="peso-historial"><div class="empty">Sin registros</div></div>
 
     <div class="sec-label">Objetivo de peso</div>
     <div class="card">
@@ -524,6 +517,9 @@ body.kp-on { padding-bottom:300px; }
         <button class="btn btn-ghost" style="width:auto; padding:12px 20px;" onclick="guardarObjetivoPeso()">Guardar</button>
       </div>
     </div>
+
+    <div class="sec-label">Historial de peso</div>
+    <div class="card" id="peso-historial"><div class="empty">Sin registros</div></div>
   </div>
 
   <!-- ══════════ STATS ══════════ -->
@@ -1742,28 +1738,19 @@ function renderComposicion() {
   $('comp-resumen-wrap').style.display = comp.length ? 'block' : 'none';
   if (!comp.length) return;
   const u = comp[0], a = comp[1];
-  const fila = (emoji, label, act, prev, malo) => {
+  const parte = (emoji, act, prev, malo) => {
     if (act == null) return '';
     let delta = '';
     if (prev != null) {
       const d = r1(act - prev);
       const color = d === 0 ? 'var(--txt3)' : ((malo ? d < 0 : d > 0) ? 'var(--green)' : 'var(--red)');
-      delta = `<span style="color:${color}; font-size:12px; margin-left:8px;">${d > 0 ? '↑ +' : d < 0 ? '↓ ' : '→ '}${d === 0 ? 'igual' : d + ' %'}</span>`;
+      delta = ` <span style="color:${color}">${d > 0 ? '↑+' : d < 0 ? '↓' : '→'}${d === 0 ? '' : Math.abs(d) + '%'}</span>`;
     }
-    return `<div class="row-item"><span style="color:var(--txt2)">${emoji} ${label}</span><span style="font-family:'DM Mono',monospace">${act} %${delta}</span></div>`;
+    return `${emoji} ${act}%${delta}`;
   };
-  $('comp-resumen').innerHTML = `<div style="font-size:11px; color:var(--txt3); margin-bottom:10px;">Último: ${fmtFecha(u.fecha)}${a ? ' · comparado con ' + fmtFecha(a.fecha) : ''}</div>
-    ${fila('🫧', 'Grasa corporal', u.grasa_pct, a?.grasa_pct, true)}
-    ${fila('💪', 'Músculo', u.musculo_pct, a?.musculo_pct, false)}`;
-
-  if (comp.length >= 2) {
-    $('comp-chart-card').style.display = 'block';
-    const rec = comp.slice(0, 12).reverse();
-    pintarLinea('comp', 'comp-chart', rec.map(c => c.fecha.slice(5)), [
-      { label: '% Grasa', data: rec.map(c => c.grasa_pct ?? null), borderColor: cv('--ink'), backgroundColor: 'transparent', spanGaps: true },
-      { label: '% Músculo', data: rec.map(c => c.musculo_pct ?? null), borderColor: cv('--e1'), backgroundColor: 'transparent', spanGaps: true }
-    ], true);
-  } else $('comp-chart-card').style.display = 'none';
+  const partes = [parte('🫧 Grasa', u.grasa_pct, a?.grasa_pct, true), parte('💪 Músculo', u.musculo_pct, a?.musculo_pct, false)].filter(Boolean);
+  $('comp-resumen').innerHTML = `<div style="font-size:11px; color:var(--txt3); margin-bottom:4px;">Composición · ${fmtFecha(u.fecha)}</div>
+    <div style="font-size:13px;">${partes.join(' &nbsp;·&nbsp; ')}</div>`;
 }
 
 // ════════════════════════════════════════
